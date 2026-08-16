@@ -87,6 +87,21 @@ describe("codec — ida e volta", () => {
     });
   });
 
+  it("preserva o formato de um nó de texto (código)", () => {
+    const comCodigo = Diagram.empty(DiagramId("d1")).addNode(
+      new DiagramNode(
+        NodeId("n1"),
+        rect(0, 0, 120, 24),
+        textContent(undefined, "code"),
+        "const x = 1;",
+      ),
+    );
+
+    const voltou = rodarIdaEVolta(comCodigo);
+    const content = voltou.node(NodeId("n1"))?.content;
+    expect(content?.kind === "text" && content.format).toBe("code");
+  });
+
   it("preserva um nó de forma umlClass, com o texto dos três compartimentos", () => {
     const comClasse = Diagram.empty(DiagramId("d1")).addNode(
       new DiagramNode(
@@ -136,6 +151,38 @@ describe("codec — retrocompatibilidade", () => {
       horizontal: "center",
       vertical: "middle",
     });
+  });
+
+  it("nó de texto salvo antes do formato existir abre como texto simples", () => {
+    const antigo = {
+      schemaVersion: SCHEMA_VERSION,
+      id: "d1",
+      nodes: [{ id: "n1", rect: { x: 0, y: 0, w: 120, h: 24 }, content: { kind: "text" } }],
+      edges: [],
+    };
+
+    const diagram = fromDocument(parseDocument(JSON.stringify(antigo)));
+    const content = diagram.node(NodeId("n1"))?.content;
+    expect(content?.kind === "text" && content.format).toBe("plain");
+  });
+
+  it("formato com valor desconhecido cai no padrão, em vez de rejeitar o documento", () => {
+    const adulterado = {
+      schemaVersion: SCHEMA_VERSION,
+      id: "d1",
+      nodes: [
+        {
+          id: "n1",
+          rect: { x: 0, y: 0, w: 120, h: 24 },
+          content: { kind: "text", format: "markdown" },
+        },
+      ],
+      edges: [],
+    };
+
+    const diagram = fromDocument(parseDocument(JSON.stringify(adulterado)));
+    const content = diagram.node(NodeId("n1"))?.content;
+    expect(content?.kind === "text" && content.format).toBe("plain");
   });
 
   it("alinhamento com valor desconhecido cai no padrão, em vez de rejeitar o documento", () => {

@@ -6,8 +6,11 @@ import alignMiddle from "lucide-static/icons/align-vertical-justify-center.svg?r
 import alignBottom from "lucide-static/icons/align-vertical-justify-end.svg?raw";
 import arrowRight from "lucide-static/icons/arrow-right.svg?raw";
 import arrowLeftRight from "lucide-static/icons/arrow-left-right.svg?raw";
+import typeIcon from "lucide-static/icons/type.svg?raw";
+import codeIcon from "lucide-static/icons/code.svg?raw";
 
 import type { TextAlign } from "../../domain/diagram/TextAlign.js";
+import type { TextFormat } from "../../domain/diagram/TextFormat.js";
 import type { EdgeStyle } from "../../domain/diagram/EdgeStyle.js";
 import type { EditorSession } from "../session/useEditorSession.js";
 
@@ -47,10 +50,17 @@ export const PropertiesPanel = ({ session }: { session: EditorSession }) => {
   return (
     <aside className="properties-panel">
       {node && node.content.kind === "text" ? (
-        <TextAlignFields
-          align={node.content.align}
-          onChange={(align) => actions.setTextAlign(node.id, align)}
-        />
+        <>
+          <FormatFields
+            format={node.content.format}
+            onChange={(format) => actions.setTextFormat(node.id, format)}
+          />
+          <TextAlignFields
+            align={node.content.align}
+            format={node.content.format}
+            onChange={(align) => actions.setTextAlign(node.id, align)}
+          />
+        </>
       ) : edge ? (
         <EdgeStyleFields
           style={edge.style}
@@ -85,25 +95,32 @@ const VERTICAL_OPTIONS: readonly {
 
 const TextAlignFields = ({
   align,
+  format,
   onChange,
 }: {
   align: TextAlign;
+  format: TextFormat;
   onChange: (align: TextAlign) => void;
 }) => (
   <section className="properties-section">
     <h2 className="properties-title">Alinhamento do texto</h2>
 
-    <div className="option-group" role="group" aria-label="Alinhamento horizontal">
-      {HORIZONTAL_OPTIONS.map((option) => (
-        <FieldButton
-          key={option.value}
-          active={align.horizontal === option.value}
-          label={option.label}
-          svg={option.svg}
-          onClick={() => onChange({ ...align, horizontal: option.value })}
-        />
-      ))}
-    </div>
+    {/* Código é sempre alinhado à esquerda (convenção de editor de código — ver
+        `NodeLabel`); mostrar os botões horizontais aqui sugeriria um controle que
+        não faz nada nesse modo. */}
+    {format !== "code" && (
+      <div className="option-group" role="group" aria-label="Alinhamento horizontal">
+        {HORIZONTAL_OPTIONS.map((option) => (
+          <FieldButton
+            key={option.value}
+            active={align.horizontal === option.value}
+            label={option.label}
+            svg={option.svg}
+            onClick={() => onChange({ ...align, horizontal: option.value })}
+          />
+        ))}
+      </div>
+    )}
 
     <div className="option-group" role="group" aria-label="Alinhamento vertical">
       {VERTICAL_OPTIONS.map((option) => (
@@ -113,6 +130,40 @@ const TextAlignFields = ({
           label={option.label}
           svg={option.svg}
           onClick={() => onChange({ ...align, vertical: option.value })}
+        />
+      ))}
+    </div>
+  </section>
+);
+
+const FORMAT_OPTIONS: readonly { value: TextFormat; label: string; svg: string }[] = [
+  { value: "plain", label: "Texto simples", svg: typeIcon },
+  { value: "code", label: "Código", svg: codeIcon },
+];
+
+/**
+ * Texto simples ou código JS — o botão que liga o destaque de sintaxe (ver
+ * `jsHighlight.ts`). Fica ACIMA do alinhamento porque muda o que o alinhamento
+ * horizontal significa (código ignora e força à esquerda).
+ */
+const FormatFields = ({
+  format,
+  onChange,
+}: {
+  format: TextFormat;
+  onChange: (format: TextFormat) => void;
+}) => (
+  <section className="properties-section">
+    <h2 className="properties-title">Formato</h2>
+
+    <div className="option-group" role="group" aria-label="Formato do texto">
+      {FORMAT_OPTIONS.map((option) => (
+        <FieldButton
+          key={option.value}
+          active={format === option.value}
+          label={option.label}
+          svg={option.svg}
+          onClick={() => onChange(option.value)}
         />
       ))}
     </div>

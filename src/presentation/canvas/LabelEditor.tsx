@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 
 import { rect } from "../../domain/shared/geometry.js";
 import type { EditorSession } from "../session/useEditorSession.js";
+import { tokenizeJsLine } from "./jsHighlight.js";
 import {
   LABEL_FONT_SIZE,
   LABEL_PADDING,
   LINE_HEIGHT,
+  MONO_FONT_FAMILY,
   TEXT_NODE_FONT_SIZE,
   textHeightFor,
 } from "./measureText.js";
@@ -30,6 +32,10 @@ export const LabelEditor = ({ session }: { session: EditorSession }) => {
   const [value, setValue] = useState(node?.label ?? "");
   const [focused, setFocused] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
+  // O fundo colorido do modo código (ver o ramo `isCode` abaixo) — precisa da MESMA
+  // rolagem que o textarea, ou o destaque desliza fora de sincronia com o cursor
+  // assim que o texto passa da altura da caixa.
+  const backdropRef = useRef<HTMLDivElement>(null);
   // O valor mais recente, para o commit no desmonte não capturar um texto velho.
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -54,6 +60,7 @@ export const LabelEditor = ({ session }: { session: EditorSession }) => {
   if (!node) return null;
 
   const isText = node.content.kind === "text";
+  const isCode = node.content.kind === "text" && node.content.format === "code";
   const fontSize = isText ? TEXT_NODE_FONT_SIZE : LABEL_FONT_SIZE;
 
   /**
@@ -83,7 +90,9 @@ export const LabelEditor = ({ session }: { session: EditorSession }) => {
   function fitToText(text: string) {
     if (!node) return undefined;
     const width = node.rect.w;
-    const height = Math.max(node.rect.h, textHeightFor(text, width));
+    // Código mede com a fonte mono — a mesma divergência de largura por caractere
+    // que já vale para a quebra de linha em `NodeLabel`.
+    const height = Math.max(node.rect.h, textHeightFor(text, width, isCode ? MONO_FONT_FAMILY : undefined));
     return rect(node.rect.x, node.rect.y, width, height);
   }
 
@@ -103,6 +112,73 @@ export const LabelEditor = ({ session }: { session: EditorSession }) => {
         ]
       : "center";
 
+  // Posição e tamanho na TELA — comum aos dois ramos abaixo. No modo código é o
+  // envoltório que ocupa este retângulo; nos demais, o próprio `<textarea>`.
+  const boxStyle = {
+    left: topLeft.x,
+    // Rótulo de ícone fica ABAIXO da caixa; nas outras variantes, dentro dela.
+    top: isIcon ? topLeft.y + node.rect.h * viewport.scale : topLeft.y,
+    width: Math.max(node.rect.w, 80) * viewport.scale,
+    height: (isIcon ? fontSize * LINE_HEIGHT * 2 : node.rect.h) * viewport.scale,
+  };
+
+  if (isCode) {
+    return (
+      <div className="label-editor-code-wrap" style={boxStyle}>
+        {/*
+         * O TRUQUE: o texto de verdade fica invisível (`color: transparent` na CSS
+         * do `.label-editor--code`) — quem aparece é este `<div>` por baixo, com
+         * cada token colorido. Os dois têm fonte, padding e altura de linha
+         * IDÊNTICOS (mesmas constantes, mesmo valor de `fontSize`/`viewport.scale`
+         * abaixo), então o texto colorido cai exatamente sob o texto real: o
+         * `<textarea>` continua dono de foco, seleção, cursor e IME — só não é ELE
+         * quem pinta o glifo na tela.
+         *
+         * `aria-hidden`: quem lê a tela já tem o `<textarea>` com o mesmo texto;
+         * duplicar aqui seria o conteúdo lido duas vezes.
+         */}
+        <div
+          ref={backdropRef}
+          className="label-editor-code-backdrop"
+          aria-hidden="true"
+          style={{ fontSize: fontSize * viewport.scale, lineHeight: LINE_HEIGHT, padding: LABEL_PADDING * viewport.scale }}
+        >
+          {value.split("\n").map((line, index, allLines) => (
+            <span key={index}>
+              {tokenizeJsLine(line).map((token, tokenIndex) => (
+                <span key={tokenIndex} className={`code-token code-token--${token.kind}`}>
+                  {token.text}
+                </span>
+              ))}
+              {/* Quebra real entre linhas — a última não leva, ou sobraria uma linha
+                  em branco a mais que `value` não tem. */}
+              {index < allLines.length - 1 ? "\n" : ""}
+            </span>
+          ))}
+        </div>
+        <textarea
+          ref={ref}
+          className="label-editor label-editor--code"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          // O destaque rola junto — sem isso, digitar além da altura visível
+          // desalinha o fundo colorido do texto real assim que o campo rola.
+          onScroll={(event) => {
+            if (backdropRef.current) backdropRef.current.scrollTop = event.currentTarget.scrollTop;
+          }}
+          onBlur={() => focused && commit(valueRef.current)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              commit(valueRef.current);
+            }
+          }}
+          style={{ fontSize: fontSize * viewport.scale, lineHeight: LINE_HEIGHT, padding: LABEL_PADDING * viewport.scale }}
+        />
+      </div>
+    );
+  }
+
   return (
     <textarea
       ref={ref}
@@ -121,11 +197,7 @@ export const LabelEditor = ({ session }: { session: EditorSession }) => {
         }
       }}
       style={{
-        left: topLeft.x,
-        // Rótulo de ícone fica ABAIXO da caixa; nas outras variantes, dentro dela.
-        top: isIcon ? topLeft.y + node.rect.h * viewport.scale : topLeft.y,
-        width: Math.max(node.rect.w, 80) * viewport.scale,
-        height: (isIcon ? fontSize * LINE_HEIGHT * 2 : node.rect.h) * viewport.scale,
+        ...boxStyle,
         fontSize: fontSize * viewport.scale,
         lineHeight: LINE_HEIGHT,
         padding: isIcon ? 0 : LABEL_PADDING * viewport.scale,

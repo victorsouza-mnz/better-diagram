@@ -180,6 +180,42 @@ describe("Diagram — alinhamento de nó de texto", () => {
   });
 });
 
+describe("Diagram — formato de nó de texto", () => {
+  const textNode = (id: string, x = 0, y = 0) =>
+    new DiagramNode(NodeId(id), rect(x, y, 120, 24), textContent());
+
+  it("nasce como texto simples", () => {
+    const diagram = empty().addNode(textNode("n1"));
+    const content = diagram.node(NodeId("n1"))?.content;
+    expect(content?.kind === "text" && content.format).toBe("plain");
+  });
+
+  it("setTextFormat troca o formato sem afetar o alinhamento nem o rótulo", () => {
+    const diagram = empty()
+      .addNode(textNode("n1"))
+      .setNodeLabel(NodeId("n1"), "const x = 1;")
+      .setTextAlign(NodeId("n1"), { horizontal: "left", vertical: "top" })
+      .setTextFormat(NodeId("n1"), "code");
+
+    const node = diagram.node(NodeId("n1"));
+    expect(node?.content.kind === "text" && node.content.format).toBe("code");
+    expect(node?.content.kind === "text" && node.content.align).toEqual({
+      horizontal: "left",
+      vertical: "top",
+    });
+    expect(node?.label).toBe("const x = 1;");
+  });
+
+  it("recusa formatar um nó que não é de texto", () => {
+    const diagram = empty().addNode(shapeNode("n1"));
+    expect(() => diagram.setTextFormat(NodeId("n1"), "code")).toThrow(NotATextNode);
+  });
+
+  it("recusa formatar um nó inexistente", () => {
+    expect(() => empty().setTextFormat(NodeId("fantasma"), "code")).toThrow(NodeNotFound);
+  });
+});
+
 describe("Diagram — invariante 3 e 4: assets", () => {
   it("recusa nó de ícone cujo asset não está no documento", () => {
     expect(() => empty().addNode(iconNode("n1", postgres))).toThrow(AssetNotFound);

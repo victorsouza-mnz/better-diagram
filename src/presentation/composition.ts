@@ -16,6 +16,7 @@ import {
   SetEdgeStyle,
   SetNodeLabel,
   SetTextAlign,
+  SetTextFormat,
 } from "../application/editing.js";
 import { DiagramId } from "../domain/shared/ids.js";
 import { SimpleIconsCatalog } from "../infrastructure/icons/SimpleIconsCatalog.js";
@@ -67,6 +68,7 @@ export const useCases = {
   addTextNode: new AddTextNode(ids),
   setNodeLabel: new SetNodeLabel(),
   setTextAlign: new SetTextAlign(),
+  setTextFormat: new SetTextFormat(),
   connectNodes: new ConnectNodes(ids),
   cycleEdgeStyle: new CycleEdgeStyle(),
   setEdgeStyle: new SetEdgeStyle(),

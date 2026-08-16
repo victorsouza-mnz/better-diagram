@@ -184,6 +184,41 @@ Um elemento HTML posicionado **sobre** o canvas, não um `foreignObject`:
 - Enquanto ele está aberto, os atalhos do editor não valem (o guard de digitação já
   existe, do undo/redo).
 
+## Formato de texto: simples ou código
+
+Um nó de **texto** (só ele — forma e ícone não têm) pode ser marcado como "código":
+o rótulo passa a ser desenhado em fonte monoespaçada com destaque mínimo de sintaxe
+JS (palavra-chave, string, comentário de linha, número). O botão que liga isso mora
+no painel de propriedades, não aqui — ver [`painel-propriedades.md`](../ui/painel-propriedades.md)
+para o controle; esta seção descreve o que o formato MUDA no desenho e na edição do
+nó de texto.
+
+- **"Mínimo" é decisão de produto, não limitação técnica.** O rótulo de um nó é um
+  trecho curto pra ilustrar um diagrama, não um arquivo fonte — cobrir template
+  string aninhada, regex literal ou JSX corretamente pediria um parser de verdade
+  (AST) por um ganho que ninguém nota num diagrama. O tokenizador é uma regex só
+  (`jsHighlight.ts`), função pura, sem noção de escopo.
+- **Código força alinhamento horizontal à esquerda**, ignorando o que estiver
+  escolhido no painel — é a convenção de todo editor de código, e o desenho por
+  token (cada palavra colorida é um `<tspan>` próprio, só o primeiro da linha carrega
+  `x`) não teria posição previsível centralizado ou à direita sem medir a linha
+  inteira de novo. O alinhamento VERTICAL continua funcionando normalmente — só o
+  eixo horizontal é a exceção.
+- **A quebra de linha usa a fonte monoespaçada para medir**, não a fonte padrão — a
+  largura por caractere é diferente, e medir com a fonte errada vaza o texto da
+  caixa (mesma função `textHeightFor`/`measureAt` de sempre, agora aceitando a
+  família de fonte como parâmetro).
+- **O destaque aparece AO VIVO, durante a digitação** — não só depois de sair da
+  edição. Isso exige uma técnica diferente do editor de texto simples: o
+  `<textarea>` continua a única fonte de foco/seleção/cursor/IME, mas o texto real
+  dele é invisível (`color: transparent`) e um `<div>` por baixo, com a mesma fonte,
+  padding e altura de linha, pixel a pixel, desenha o texto colorido por token — o
+  `<textarea>` só entrega o cursor piscando (`caret-color`) por cima. Os dois rolam
+  juntos (`scrollTop` sincronizado) quando o texto passa da altura visível da caixa.
+  A alternativa mais simples — destacar só ao sair da edição — foi considerada e
+  descartada: digitar um trecho de código sem ver a cor até terminar tira a única
+  vantagem de ligar o modo código.
+
 ## Modelagem de domínio
 
 Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
@@ -214,6 +249,11 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
 - Quebras de linha vão no próprio `label`, como `\n` — não viram campo novo. Os
   compartimentos da caixa de classe também: são a MESMA string, com linhas em
   branco como separador — não um `label` estruturado.
+- **Formato de texto** (`content.format`, "plain" | "código") é um campo aditivo a
+  mais dentro da variante `text` de `content` — mesmo tratamento de `align`
+  (modelagem completa em [`painel-propriedades.md`](../ui/painel-propriedades.md),
+  onde mora o controle que muda o campo): padrão `"plain"`, `schemaVersion` não sobe,
+  documento salvo antes do campo existir abre como texto simples.
 
 ## Impacto por camada
 
@@ -224,7 +264,11 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
 - `presentation/`: barra de ferramentas, ferramenta ativa, gesto de criação, editor
   de rótulo sobreposto, `wrapText` + o medidor, render em `<tspan>`. Caixa de
   classe: `NodeView.tsx` (canto reto), `NodeLabel.tsx` (`UmlClassBody` — separa o
-  `label` em três, desenha os divisores e cada compartimento).
+  `label` em três, desenha os divisores e cada compartimento). Modo código:
+  `canvas/jsHighlight.ts` (tokenizador puro), `NodeLabel.tsx` (ramo de desenho com um
+  `<tspan>` colorido por token), `LabelEditor.tsx` (o `<div>` de fundo colorido por
+  trás do `<textarea>` transparente), `measureText.ts` (`MONO_FONT_FAMILY`, medidor
+  e `textHeightFor` aceitando a família de fonte).
 - Performance: a quebra de linha é recalculada por render de nó. Se pesar, memoiza
   por (texto, largura) — não antes.
 
@@ -264,6 +308,20 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
       sem piso de conteúdo (esse piso é só do nó de texto).
 - [x] A caixa de classe sobrevive à recarga, com o `shape: "umlClass"` e o texto dos
       três compartimentos intactos.
+- [x] Ligar o formato "código" num nó de texto muda a fonte para monoespaçada e
+      colore palavra-chave, string, comentário e número — nos dois lugares: o
+      desenho final (`<tspan>`) e o fundo por trás do `<textarea>` durante a edição.
+- [x] O destaque aparece AO VIVO: digitar uma palavra-chave, string ou comentário
+      colore o trecho sem precisar sair da edição.
+- [x] Alinhamento horizontal escolhido no painel não tem efeito visual em modo
+      código — o texto fica sempre à esquerda; o vertical continua funcionando.
+- [x] Um nó de texto em modo código com mais linhas do que a altura visível rola
+      durante a digitação, e o fundo colorido acompanha a mesma rolagem do
+      `<textarea>` — nunca desalinha.
+- [x] Alternar de código para texto simples (e vice-versa) preserva o conteúdo do
+      rótulo — só a apresentação muda.
+- [x] O formato sobrevive à recarga e ao export/import; um documento salvo antes do
+      campo existir abre como texto simples.
 
 ## Questões em aberto
 

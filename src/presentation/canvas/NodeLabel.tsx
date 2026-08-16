@@ -1,9 +1,11 @@
 import type { DiagramNode } from "../../domain/diagram/Node.js";
 import type { Rect } from "../../domain/shared/geometry.js";
+import { tokenizeJsLine } from "./jsHighlight.js";
 import {
   LABEL_FONT_SIZE,
   LABEL_PADDING,
   LINE_HEIGHT,
+  MONO_FONT_FAMILY,
   TEXT_NODE_FONT_SIZE,
   measureAt,
 } from "./measureText.js";
@@ -41,13 +43,16 @@ export const NodeLabel = ({ node, rect }: { node: DiagramNode; rect: Rect }) => 
 
   const isText = node.content.kind === "text";
   const isIcon = node.content.kind === "icon";
+  const isCode = node.content.kind === "text" && node.content.format === "code";
   const fontSize = isText ? TEXT_NODE_FONT_SIZE : LABEL_FONT_SIZE;
 
   const maxWidth = isIcon
     ? Math.max(rect.w * 2, 96) // legenda pode ser mais larga que o ícone
     : Math.max(rect.w - LABEL_PADDING * 2, 1);
 
-  const lines = wrapText(node.label, maxWidth, measureAt(fontSize));
+  // A quebra usa o medidor da fonte que vai desenhar — mono é mais largo por
+  // caractere que a fonte proporcional; medir com a errada vaza texto da caixa.
+  const lines = wrapText(node.label, maxWidth, measureAt(fontSize, isCode ? MONO_FONT_FAMILY : undefined));
   const lineHeight = fontSize * LINE_HEIGHT;
   const blockHeight = lines.length * lineHeight;
 
@@ -55,8 +60,13 @@ export const NodeLabel = ({ node, rect }: { node: DiagramNode; rect: Rect }) => 
   // abaixo da caixa, mesmo comportamento de sempre (`formas-e-texto.md`).
   const align = node.content.kind === "text" ? node.content.align : undefined;
 
-  const x = align ? xForHorizontal(align.horizontal, rect.w) : rect.w / 2;
-  const textAnchor = align ? ANCHOR_FOR_HORIZONTAL[align.horizontal] : undefined;
+  // Código ignora o alinhamento horizontal escolhido: convenção de todo editor de
+  // código (linha alinhada à esquerda), e um bloco colorido por token só teria
+  // posição previsível com `text-anchor: start` — nele, só o PRIMEIRO token da linha
+  // carrega `x` (ver o `map` mais abaixo); "centralizar" pediria medir a linha
+  // inteira de novo, duplicando o que a quebra já fez.
+  const x = isCode ? LABEL_PADDING : align ? xForHorizontal(align.horizontal, rect.w) : rect.w / 2;
+  const textAnchor = isCode ? "start" : align ? ANCHOR_FOR_HORIZONTAL[align.horizontal] : undefined;
 
   // Ícone: abaixo da caixa. Forma: bloco sempre centralizado. Texto: conforme o
   // alinhamento vertical escolhido.
@@ -65,6 +75,43 @@ export const NodeLabel = ({ node, rect }: { node: DiagramNode; rect: Rect }) => 
     : align
       ? yForVertical(align.vertical, rect.h, blockHeight, fontSize)
       : (rect.h - blockHeight) / 2 + fontSize;
+
+  if (isCode) {
+    return (
+      <text
+        x={x}
+        y={firstBaseline}
+        className="node-text node-text--code"
+        style={{ pointerEvents: "none", fontSize, fontFamily: MONO_FONT_FAMILY, textAnchor }}
+      >
+        {lines.map((line, lineIndex) => {
+          const tokens = tokenizeJsLine(line);
+          const dy = lineIndex === 0 ? 0 : lineHeight;
+          // Linha vazia não tokeniza nada — sem um tspan aqui, ela colapsa e
+          // desalinha o resto do bloco, igual ao ramo de texto simples logo abaixo.
+          if (tokens.length === 0) {
+            return (
+              <tspan key={lineIndex} x={x} dy={dy}>
+                {" "}
+              </tspan>
+            );
+          }
+          // Só o PRIMEIRO token da linha carrega `x`/`dy` — os seguintes continuam
+          // no fluxo do texto, na mesma linha, cada um com a cor do seu tipo.
+          return tokens.map((token, tokenIndex) => (
+            <tspan
+              key={`${lineIndex}-${tokenIndex}`}
+              x={tokenIndex === 0 ? x : undefined}
+              dy={tokenIndex === 0 ? dy : undefined}
+              className={`code-token code-token--${token.kind}`}
+            >
+              {token.text}
+            </tspan>
+          ));
+        })}
+      </text>
+    );
+  }
 
   return (
     <text

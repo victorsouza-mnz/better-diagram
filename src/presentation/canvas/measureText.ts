@@ -16,6 +16,13 @@ export const LABEL_FONT_SIZE = 12;
 export const TEXT_NODE_FONT_SIZE = 14;
 export const LINE_HEIGHT = 1.3;
 export const FONT_FAMILY = "system-ui, -apple-system, 'Segoe UI', sans-serif";
+/**
+ * Fonte do modo código (`TextFormat: "code"`). Monoespaçada não é estética — é o
+ * que faz o backdrop de destaque de sintaxe (`LabelEditor`) casar caractere por
+ * caractere com o `<textarea>` transparente por cima: com fonte proporcional, o
+ * cursor real do textarea e o texto colorido do backdrop divergem a cada tecla.
+ */
+export const MONO_FONT_FAMILY = "'SF Mono', 'Cascadia Code', Consolas, 'Courier New', monospace";
 
 /** Respiro lateral do texto dentro de uma caixa — mesmo valor em render e edição. */
 export const LABEL_PADDING = 10;
@@ -27,12 +34,13 @@ const context = (() => {
 
 const cache = new Map<string, Measure>();
 
-/** Um medidor por tamanho de fonte, memoizado. */
-export const measureAt = (fontSize: number): Measure => {
-  const cached = cache.get(String(fontSize));
+/** Um medidor por tamanho+família de fonte, memoizado. */
+export const measureAt = (fontSize: number, fontFamily: string = FONT_FAMILY): Measure => {
+  const key = `${fontSize}/${fontFamily}`;
+  const cached = cache.get(key);
   if (cached) return cached;
 
-  const font = `${fontSize}px ${FONT_FAMILY}`;
+  const font = `${fontSize}px ${fontFamily}`;
   const measure: Measure = context
     ? (text) => {
         context.font = font;
@@ -42,7 +50,7 @@ export const measureAt = (fontSize: number): Measure => {
     // aproximado é melhor que tela em branco.
     : (text) => text.length * fontSize * 0.55;
 
-  cache.set(String(fontSize), measure);
+  cache.set(key, measure);
   return measure;
 };
 
@@ -53,8 +61,16 @@ export const measureAt = (fontSize: number): Measure => {
  * redimensionamento quanto pelo fim da edição de rótulo (`LabelEditor.fitToText`):
  * a mesma conta nos dois lugares é o que garante que um nunca "corrige" o que o
  * outro decidiu.
+ *
+ * `fontFamily` é opcional porque só o modo código diverge do padrão — passar
+ * `MONO_FONT_FAMILY` aqui é o que mantém a altura calculada batendo com a largura
+ * real dos caracteres monoespaçados desenhados por `NodeLabel`.
  */
-export const textHeightFor = (label: string, width: number): number => {
-  const lines = wrapText(label, Math.max(width - LABEL_PADDING * 2, 1), measureAt(TEXT_NODE_FONT_SIZE));
+export const textHeightFor = (label: string, width: number, fontFamily: string = FONT_FAMILY): number => {
+  const lines = wrapText(
+    label,
+    Math.max(width - LABEL_PADDING * 2, 1),
+    measureAt(TEXT_NODE_FONT_SIZE, fontFamily),
+  );
   return lines.length * TEXT_NODE_FONT_SIZE * LINE_HEIGHT;
 };

@@ -4,6 +4,7 @@ import { Edge } from "../diagram/Edge.js";
 import type { Asset } from "../diagram/Asset.js";
 import type { NodeContent, ShapeKind } from "../diagram/NodeContent.js";
 import { DEFAULT_TEXT_ALIGN, type TextAlign } from "../diagram/TextAlign.js";
+import { DEFAULT_TEXT_FORMAT, type TextFormat } from "../diagram/TextFormat.js";
 import { rect } from "../shared/geometry.js";
 import { AssetId, DiagramId, EdgeId, NodeId } from "../shared/ids.js";
 import { DocumentInvalid, UnsupportedSchemaVersion } from "./errors.js";
@@ -93,6 +94,7 @@ const num = (value: unknown, path: string): number => {
 const SHAPES: readonly string[] = ["rect", "ellipse", "diamond", "umlClass"];
 const HORIZONTAL_ALIGNS: readonly string[] = ["left", "center", "right"];
 const VERTICAL_ALIGNS: readonly string[] = ["top", "middle", "bottom"];
+const TEXT_FORMATS: readonly string[] = ["plain", "code"];
 
 /**
  * Ausente, ou de um documento salvo antes de o alinhamento existir: cai no padrão
@@ -114,6 +116,10 @@ const parseTextAlign = (raw: unknown): TextAlignDoc => {
   return { horizontal, vertical };
 };
 
+/** Mesma técnica de `parseTextAlign`: ausente ou inválido cai no padrão. */
+const parseTextFormat = (raw: unknown): string =>
+  typeof raw === "string" && TEXT_FORMATS.includes(raw) ? raw : DEFAULT_TEXT_FORMAT;
+
 const parseContent = (raw: unknown, path: string): ContentDoc => {
   if (!isObject(raw)) throw new DocumentInvalid(`${path} precisa ser um objeto`);
 
@@ -128,7 +134,11 @@ const parseContent = (raw: unknown, path: string): ContentDoc => {
       return { kind: "shape", shape };
     }
     case "text":
-      return { kind: "text", align: parseTextAlign(raw["align"]) };
+      return {
+        kind: "text",
+        align: parseTextAlign(raw["align"]),
+        format: parseTextFormat(raw["format"]),
+      };
     default:
       throw new DocumentInvalid(`${path}.kind desconhecido: ${String(raw["kind"])}`);
   }
@@ -276,4 +286,8 @@ const toContent = (content: ContentDoc): NodeContent =>
     ? { kind: "icon", assetId: AssetId(content.assetId) }
     : content.kind === "shape"
       ? { kind: "shape", shape: content.shape as ShapeKind }
-      : { kind: "text", align: content.align as TextAlign };
+      : {
+          kind: "text",
+          align: content.align as TextAlign,
+          format: content.format as TextFormat,
+        };

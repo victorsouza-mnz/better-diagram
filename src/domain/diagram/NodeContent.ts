@@ -1,5 +1,6 @@
 import type { AssetId } from "../shared/ids.js";
 import { DEFAULT_TEXT_ALIGN, type TextAlign } from "./TextAlign.js";
+import { DEFAULT_TEXT_FORMAT, type TextFormat } from "./TextFormat.js";
 
 /**
  * O conteúdo de um nó — o coração do modelo.
@@ -17,7 +18,7 @@ import { DEFAULT_TEXT_ALIGN, type TextAlign } from "./TextAlign.js";
 export type NodeContent =
   | { readonly kind: "icon"; readonly assetId: AssetId }
   | { readonly kind: "shape"; readonly shape: ShapeKind }
-  | { readonly kind: "text"; readonly align: TextAlign };
+  | { readonly kind: "text"; readonly align: TextAlign; readonly format: TextFormat };
 
 /**
  * `umlClass` é uma forma como as outras — mesmo redimensionar livre, mesmo resto do
@@ -39,9 +40,13 @@ export const shapeContent = (shape: ShapeKind): NodeContent => ({
   shape,
 });
 
-export const textContent = (align: TextAlign = DEFAULT_TEXT_ALIGN): NodeContent => ({
+export const textContent = (
+  align: TextAlign = DEFAULT_TEXT_ALIGN,
+  format: TextFormat = DEFAULT_TEXT_FORMAT,
+): NodeContent => ({
   kind: "text",
   align,
+  format,
 });
 
 /**

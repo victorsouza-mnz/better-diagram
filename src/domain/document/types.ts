@@ -13,13 +13,13 @@
  * guardando a mesma identidade é um lugar para eles discordarem.
  *
  * CAMPO NOVO NEM SEMPRE SOBE `SCHEMA_VERSION`. `EdgeDoc.dashed`/`.bidirectional` e
- * `ContentDoc.align` (na variante `text`) são exemplo: têm um valor padrão seguro
- * (`false`/`false`; centro/meio, o alinhamento de sempre), e um documento v1 salvo
- * ANTES de eles existirem continua abrindo — o codec preenche o padrão na leitura,
- * mesma técnica já usada em `label`/`z` de `NodeDoc`. Reservar a versão para mudança
- * que QUEBRA leitura antiga (campo obrigatório novo, campo que muda de forma,
- * semântica que muda) é o que mantém a migração um evento raro e sério, em vez de
- * disparar a cada campo opcional.
+ * `ContentDoc.align`/`.format` (na variante `text`) são exemplo: têm um valor
+ * padrão seguro (`false`/`false`; centro/meio; texto simples — o visual de sempre),
+ * e um documento v1 salvo ANTES de eles existirem continua abrindo — o codec
+ * preenche o padrão na leitura, mesma técnica já usada em `label`/`z` de `NodeDoc`.
+ * Reservar a versão para mudança que QUEBRA leitura antiga (campo obrigatório novo,
+ * campo que muda de forma, semântica que muda) é o que mantém a migração um evento
+ * raro e sério, em vez de disparar a cada campo opcional.
  */
 
 export const SCHEMA_VERSION = 1;
@@ -39,7 +39,7 @@ export interface TextAlignDoc {
 export type ContentDoc =
   | { readonly kind: "icon"; readonly assetId: string }
   | { readonly kind: "shape"; readonly shape: string }
-  | { readonly kind: "text"; readonly align: TextAlignDoc };
+  | { readonly kind: "text"; readonly align: TextAlignDoc; readonly format: string };
 
 export interface NodeDoc {
   readonly id: string;

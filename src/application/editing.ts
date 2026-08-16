@@ -4,6 +4,7 @@ import { Edge } from "../domain/diagram/Edge.js";
 import { nextEdgeStyle, type EdgeStyle } from "../domain/diagram/EdgeStyle.js";
 import { shapeContent, textContent, type ShapeKind } from "../domain/diagram/NodeContent.js";
 import type { TextAlign } from "../domain/diagram/TextAlign.js";
+import type { TextFormat } from "../domain/diagram/TextFormat.js";
 import { rect, type Point, type Rect } from "../domain/shared/geometry.js";
 import { EdgeId, NodeId } from "../domain/shared/ids.js";
 import type { IdGenerator } from "./ports/index.js";
@@ -114,6 +115,13 @@ export class SetNodeLabel {
 export class SetTextAlign {
   execute(input: { diagram: Diagram; id: NodeId; align: TextAlign }): Diagram {
     return input.diagram.setTextAlign(input.id, input.align);
+  }
+}
+
+/** Texto simples ou código JS — só existe em nó de texto. */
+export class SetTextFormat {
+  execute(input: { diagram: Diagram; id: NodeId; format: TextFormat }): Diagram {
+    return input.diagram.setTextFormat(input.id, input.format);
   }
 }
 

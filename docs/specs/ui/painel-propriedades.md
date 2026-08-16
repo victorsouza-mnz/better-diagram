@@ -6,10 +6,11 @@
 ## Objetivo
 
 Um painel lateral, à DIREITA do canvas, que mostra os controles do elemento
-selecionado. Dois controles hoje: alinhamento horizontal e vertical do rótulo de um
-nó de **texto** dentro da caixa, e direção/traço de uma **aresta** selecionada. O
-painel é uma superfície que vai crescer — mais controles (cor, borda) chegam depois,
-cada um com sua própria entrega.
+selecionado. Três controles hoje: formato (texto simples / código) e alinhamento
+horizontal e vertical do rótulo de um nó de **texto** dentro da caixa, e
+direção/traço de uma **aresta** selecionada. O painel é uma superfície que vai
+crescer — mais controles (cor, borda) chegam depois, cada um com sua própria
+entrega.
 
 ## Não-objetivos
 
@@ -45,8 +46,13 @@ aqui, só um novo consumidor dele.
   área da direita não existe, o canvas usa a largura toda. Não é um painel vazio
   visível; é ausente.
 - Dentro do painel, o conteúdo depende do que está selecionado:
-  - **Nó de texto:** dois grupos de três botões — alinhamento horizontal (esquerda /
-    centro / direita) e vertical (topo / meio / baixo).
+  - **Nó de texto:** um grupo de dois botões — formato (texto simples / código,
+    "Formato", ver [`formas-e-texto.md`](../editor/formas-e-texto.md) para o que o
+    código muda no desenho) — seguido de dois grupos de alinhamento: horizontal
+    (esquerda / centro / direita) e vertical (topo / meio / baixo). Em modo código, o
+    grupo horizontal **some** — o alinhamento naquele eixo é sempre à esquerda nesse
+    modo, e mostrar botões que não fazem nada seria um controle mentindo. O grupo
+    vertical continua, porque ele continua valendo.
   - **Aresta:** dois grupos de dois botões — direção (unidirecional / bidirecional)
     e traço (sólido / tracejado). Os mesmos dois eixos independentes que o
     Alt+clique já cicla (`EdgeStyle`) — o painel só troca o gesto de "ciclar" por
@@ -133,13 +139,20 @@ Alternativos:
   nem "o estilo de várias arestas" — nem como média nem como o-primeiro-manda; é
   ambíguo o bastante para não ter uma resposta óbvia, então não se oferece a
   pergunta.
+- **Formato é propriedade do CONTEÚDO, mesma regra do alinhamento** — só existe
+  dentro da variante `{ kind: "text" }` de `NodeContent`. Padrão `"plain"`: um nó de
+  texto criado antes deste controle existir abre exatamente como sempre abriu.
+- **Trocar o formato não apaga nem reformata o texto** — o `label` é a mesma string
+  nos dois formatos; só a APRESENTAÇÃO muda (fonte, cor por token, alinhamento
+  horizontal forçado em código). Ir e voltar entre os dois formatos é sem perda.
 
 ## Estados de UI
 
 - Vazio (nada selecionado, ou mais de um): painel ausente, canvas usa a largura
   inteira.
-- Selecionado, nó de texto: dois grupos de três botões; o valor atual de cada eixo
-  destacado.
+- Selecionado, nó de texto: o grupo de formato (dois botões) e os grupos de
+  alinhamento; o valor atual de cada um destacado. Em modo código, só o grupo de
+  formato e o vertical aparecem — o horizontal fica ausente, não desabilitado.
 - Selecionado, aresta: dois grupos de dois botões; direção e traço atuais
   destacados.
 - Selecionado, forma ou ícone: frase "Nada para configurar neste elemento."
@@ -171,6 +184,24 @@ Alternativos:
   **caso de uso** é novo: `SetEdgeStyle`, em `application/editing.ts`, ao lado de
   `CycleEdgeStyle` — mesma entrada (`diagram`, `id`, `style`), sem ciclar: recebe o
   estilo final pronto e comete.
+- **Tipo novo:** `TextFormat` — `"plain" | "code"`. Arquivo próprio
+  (`domain/diagram/TextFormat.ts`), mesmo formato de `TextAlign.ts`: um tipo pequeno
+  com um `DEFAULT_TEXT_FORMAT` exportado, sem depender do resto do agregado.
+- **`NodeContent`** ganha mais um campo na variante de texto:
+  `{ kind: "text"; align: TextAlign; format: TextFormat }`. `textContent()` passa a
+  aceitar `format` como segundo parâmetro opcional, padrão `"plain"`.
+- **`DiagramNode.withTextFormat(format: TextFormat): DiagramNode`** — mesmo formato
+  de `withTextAlign`, mesmo `NotATextNode` se `content.kind !== "text"` (reaproveita o
+  erro, generalizado de "não tem alinhamento" para "não é de texto" — os dois setters
+  de conteúdo de texto compartilham a mesma causa: nó errado).
+- **`Diagram.setTextFormat(id: NodeId, format: TextFormat): Diagram`** — mesmo
+  formato de `setTextAlign`.
+- **Caso de uso novo:** `SetTextFormat`, em `application/editing.ts`, ao lado de
+  `SetTextAlign`.
+- **Destaque de sintaxe é lógica de apresentação, não de domínio** — o tokenizador
+  (`presentation/canvas/jsHighlight.ts`, função pura testada isolada) só decide COR
+  por token para desenhar; nada disso entra no agregado ou no documento. O documento
+  guarda o `label` (a string) e o `format` (o modo) — nunca o resultado tokenizado.
 
 ## Impacto no documento
 
@@ -187,20 +218,32 @@ Alternativos:
   um caso coberto hoje — mesma limitação que já vale para qualquer campo aditivo).
 - Estilo de aresta: nenhum campo novo — `dashed`/`bidirectional` já existem desde
   `conectar-nos.md`. O painel só chega a um campo que já era persistido.
+- **Campo novo:** `format` dentro de `content` quando `content.kind === "text"`,
+  string `"plain" | "code"`.
+- **`schemaVersion` NÃO sobe** — mesmo raciocínio de `align`: campo aditivo, padrão
+  `"plain"` (o comportamento de sempre), documento salvo antes do campo existir
+  continua abrindo, o codec preenche o padrão na leitura. Valor desconhecido também
+  cai no padrão, em vez de recusar o documento — mesma tolerância que já vale para
+  qualquer valor de allowlist inesperado no codec.
 
 ## Impacto por camada
 
-- `domain/`: `TextAlign.ts` (VO), `NodeContent.ts` (campo + factory), `Node.ts`
-  (`withTextAlign`), `Diagram.ts` (`setTextAlign`), `errors.ts` (`NotATextNode`).
-  Nada novo para estilo de aresta — reaproveita `EdgeStyle.ts`.
-- `application/`: `SetTextAlign` e `SetEdgeStyle`, os dois em `editing.ts`.
+- `domain/`: `TextAlign.ts` (VO), `TextFormat.ts` (tipo), `NodeContent.ts` (campos +
+  factory), `Node.ts` (`withTextAlign`, `withTextFormat`), `Diagram.ts`
+  (`setTextAlign`, `setTextFormat`), `errors.ts` (`NotATextNode`). Nada novo para
+  estilo de aresta — reaproveita `EdgeStyle.ts`.
+- `application/`: `SetTextAlign`, `SetTextFormat` e `SetEdgeStyle`, os três em
+  `editing.ts`.
 - `infrastructure/`: nada — o codec mora no domínio (`document/codec.ts` e
   `document/types.ts`, já contados acima).
-- `presentation/`: o painel (`presentation/panel/PropertiesPanel.tsx`, novo — os dois
-  campos moram no mesmo componente, com um `FieldButton` compartilhado), o novo
+- `presentation/`: o painel (`presentation/panel/PropertiesPanel.tsx`, novo — os
+  três campos moram no mesmo componente, com um `FieldButton` compartilhado), o novo
   cálculo de `firstBaseline`/`x` em `NodeLabel.tsx` (hoje fixo em centralizado —
-  passa a ler `content.align`), e a coluna nova no grid
-  de `App.tsx`/`styles.css`.
+  passa a ler `content.align`/`content.format`), a coluna nova no grid de
+  `App.tsx`/`styles.css`, e o que o modo código acrescenta —
+  `presentation/canvas/jsHighlight.ts` (tokenizador), o ramo de desenho por token em
+  `NodeLabel.tsx`, e o `<div>` de fundo colorido sincronizado ao `<textarea>` em
+  `LabelEditor.tsx` (ver `formas-e-texto.md` para o detalhe da técnica).
 - Performance: nenhuma — um VO de duas strings por nó de texto, sem custo de render
   além do já existente.
 
@@ -248,6 +291,14 @@ Alternativos:
 - [x] Mudar o estilo pelo painel e pelo `Alt`+clique ficam consistentes: o botão
       certo aparece destacado depois de qualquer um dos dois caminhos.
 - [x] `schemaVersion` continua `1`.
+- [x] Selecionar um nó de texto mostra o grupo "Formato" com dois botões (texto
+      simples / código), o valor atual destacado.
+- [x] Clicar "código" muda a fonte do rótulo para monoespaçada com destaque de
+      sintaxe, e some com o grupo de alinhamento horizontal — só o vertical
+      continua.
+- [x] Clicar "texto simples" de volta traz o grupo horizontal e desliga o destaque,
+      sem alterar o texto do rótulo.
+- [x] O formato sobrevive à recarga e ao export/import.
 
 ## Questões em aberto
 

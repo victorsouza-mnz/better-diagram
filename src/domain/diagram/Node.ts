@@ -3,6 +3,7 @@ import type { Rect } from "../shared/geometry.js";
 import { fitPreservingAspect, translate } from "../shared/geometry.js";
 import { preservesAspectRatio, type NodeContent } from "./NodeContent.js";
 import type { TextAlign } from "./TextAlign.js";
+import type { TextFormat } from "./TextFormat.js";
 import { NotATextNode } from "./errors.js";
 
 /**
@@ -68,6 +69,12 @@ export class DiagramNode {
    */
   withTextAlign(align: TextAlign): DiagramNode {
     if (this.content.kind !== "text") throw new NotATextNode(this.id);
-    return this.with({ content: { kind: "text", align } });
+    return this.with({ content: { ...this.content, align } });
+  }
+
+  /** Muda entre texto simples e código JS — mesma regra de `withTextAlign`. */
+  withTextFormat(format: TextFormat): DiagramNode {
+    if (this.content.kind !== "text") throw new NotATextNode(this.id);
+    return this.with({ content: { ...this.content, format } });
   }
 }

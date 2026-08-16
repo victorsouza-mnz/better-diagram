@@ -11,6 +11,7 @@ import {
 } from "../../domain/diagram/services/resizeGeometry.js";
 import { preservesAspectRatio } from "../../domain/diagram/NodeContent.js";
 import type { TextAlign } from "../../domain/diagram/TextAlign.js";
+import type { TextFormat } from "../../domain/diagram/TextFormat.js";
 import type { EdgeStyle } from "../../domain/diagram/EdgeStyle.js";
 import { History } from "../../application/history/History.js";
 import {
@@ -723,6 +724,18 @@ export const useEditorSession = () => {
     [commit],
   );
 
+  /** Clique no toggle "Texto simples / Código" do painel — mesmo formato acima. */
+  const setTextFormat = useCallback(
+    (id: NodeId, format: TextFormat) => {
+      commit(
+        useCases.setTextFormat.execute({ diagram: diagramRef.current, id, format }),
+        selectionRef.current,
+        "Mudar formato do texto",
+      );
+    },
+    [commit],
+  );
+
   // `addIcon` é assíncrono (o hash do asset passa por WebCrypto). Ler o diagrama de
   // uma ref evita cometer sobre uma versão velha, capturada no closure antes do
   // await — bug que só aparece quando duas inserções se cruzam.
@@ -880,6 +893,7 @@ export const useEditorSession = () => {
       cycleEdgeStyle,
       setEdgeStyle,
       setTextAlign,
+      setTextFormat,
       setTool,
       beginResize,
       updateResize,

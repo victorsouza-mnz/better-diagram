@@ -6,6 +6,13 @@
   --muted: #6b6b73;
   --accent: #3b6df5;
   --grid: #e8e8ec;
+  /* Nó de texto em modo código (`TextFormat: "code"`) — mesmas quatro cores no
+     desenho SVG (`NodeLabel`) e no fundo de destaque do editor (`LabelEditor`), daí
+     ficarem em token e não espalhadas pelas duas regras `.code-token--*` abaixo. */
+  --code-keyword: #a626a4;
+  --code-string: #50a14f;
+  --code-comment: #6b6b73;
+  --code-number: #986801;
   color-scheme: light dark;
 }
 
@@ -18,6 +25,10 @@
     --muted: #9a9aa3;
     --accent: #6f95ff;
     --grid: #232329;
+    --code-keyword: #c678dd;
+    --code-string: #98c379;
+    --code-comment: #7f848e;
+    --code-number: #d19a66;
   }
 }
 
@@ -323,6 +334,34 @@ button.tool--active {
   user-select: none;
 }
 
+/*
+ * Destaque de sintaxe do modo código — as MESMAS classes em dois mundos:
+ * `fill` pinta o `<tspan>` do desenho SVG (`NodeLabel`), `color` pinta o `<span>`
+ * do fundo de destaque HTML por trás do textarea (`LabelEditor`). Cada regra é
+ * inócua no mundo que não usa; nenhum dos dois lê a propriedade do outro.
+ */
+.code-token--keyword {
+  fill: var(--code-keyword);
+  color: var(--code-keyword);
+  font-weight: 600;
+}
+
+.code-token--string {
+  fill: var(--code-string);
+  color: var(--code-string);
+}
+
+.code-token--comment {
+  fill: var(--code-comment);
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.code-token--number {
+  fill: var(--code-number);
+  color: var(--code-number);
+}
+
 /* ------------------------------------------------------- caixa de classe UML */
 
 .uml-class-divider {
@@ -505,6 +544,62 @@ button.tool--active {
   border: 1px solid var(--accent);
   border-radius: 4px;
   outline: none;
+}
+
+/*
+ * Envoltório do modo código: ocupa o retângulo que o `<textarea>` sozinho ocupava
+ * nos outros modos (mesmo `boxStyle`, em `LabelEditor`) e empilha o fundo colorido
+ * atrás do campo de verdade — os dois em `position: absolute; inset: 0`, um sobre o
+ * outro, pixel a pixel.
+ */
+.label-editor-code-wrap {
+  position: absolute;
+  z-index: 2;
+}
+
+.label-editor-code-backdrop,
+.label-editor--code {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  box-sizing: border-box;
+  /* Reforço — o componente já manda `fontFamily` inline nos dois; isto é só rede de
+     segurança caso algum dia deixe de mandar. */
+  font-family: "SF Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+}
+
+.label-editor-code-backdrop {
+  overflow: hidden;
+  color: var(--text);
+  text-align: left;
+  /* O fundo opaco mora AQUI, não no textarea — ele é quem fica por baixo, então
+     precisa ser a camada visível; se o textarea de cima tivesse fundo opaco, o
+     destaque colorido nunca apareceria (era exatamente esse o bug: um `<textarea>`
+     com `background: var(--surface)` tapando o backdrop inteiro). */
+  background: var(--surface);
+  /* Nunca recebe clique — quem responde é sempre o `<textarea>` por cima, mesmo
+     sendo ele o elemento invisível. */
+  pointer-events: none;
+  border-color: transparent;
+  user-select: none;
+}
+
+.label-editor--code {
+  z-index: 1;
+  overflow: hidden auto;
+  resize: none;
+  outline: none;
+  text-align: left;
+  /* Transparente de propósito — ver o comentário no backdrop acima. */
+  background: transparent;
+  /* O texto de verdade nunca aparece — quem pinta o glifo é o backdrop atrás. O
+     cursor precisa continuar visível, daí `caret-color` separado de `color`. */
+  color: transparent;
+  caret-color: var(--text);
 }
 
 .empty-state {

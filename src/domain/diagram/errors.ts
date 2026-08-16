@@ -37,8 +37,12 @@ export class SelfLoopNotAllowed extends DomainError {
   }
 }
 
+/**
+ * Lançado ao tentar mudar uma propriedade que só existe na variante `text` de
+ * `NodeContent` (alinhamento, formato…) num nó de outro `kind`.
+ */
 export class NotATextNode extends DomainError {
   constructor(id: string) {
-    super(`Nó não é de texto, não tem alinhamento: ${id}`);
+    super(`Nó não é de texto: ${id}`);
   }
 }

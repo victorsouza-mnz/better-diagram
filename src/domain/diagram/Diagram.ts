@@ -5,6 +5,7 @@ import { DiagramNode } from "./Node.js";
 import { Edge } from "./Edge.js";
 import type { EdgeStyle } from "./EdgeStyle.js";
 import type { TextAlign } from "./TextAlign.js";
+import type { TextFormat } from "./TextFormat.js";
 import { referencedAsset } from "./NodeContent.js";
 import {
   AssetNotFound,
@@ -192,6 +193,16 @@ export class Diagram {
 
     const nodes = new Map(this.nodesById);
     nodes.set(id, node.withTextAlign(align));
+    return new Diagram(this.id, nodes, this.edgesById, this.assetsById);
+  }
+
+  /** Lança `NotATextNode` (via `DiagramNode.withTextFormat`) se o nó não for texto. */
+  setTextFormat(id: NodeId, format: TextFormat): Diagram {
+    const node = this.nodesById.get(id);
+    if (!node) throw new NodeNotFound(id);
+
+    const nodes = new Map(this.nodesById);
+    nodes.set(id, node.withTextFormat(format));
     return new Diagram(this.id, nodes, this.edgesById, this.assetsById);
   }
 
