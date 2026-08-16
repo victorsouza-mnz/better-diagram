@@ -28,4 +28,5 @@ dados, schema e migrações), `assets` (catálogo de logos, upload, sanitizaçã
 | `editor` | Formas, texto e edição de rótulo | [editor/formas-e-texto.md](editor/formas-e-texto.md) | implemented |
 | `editor` | Redimensionar por alças | [editor/redimensionar.md](editor/redimensionar.md) | implemented |
 | `persistencia` | Autosave local e arquivo `.json` | [persistencia/autosave-e-arquivo.md](persistencia/autosave-e-arquivo.md) | implemented |
+| `ui` | Tema claro/escuro | [ui/tema-claro-escuro.md](ui/tema-claro-escuro.md) | implemented |
 | `ui` | Painel de propriedades lateral | [ui/painel-propriedades.md](ui/painel-propriedades.md) | implemented — alinhamento de texto e estilo de aresta; outros controles ficam para quando existirem |

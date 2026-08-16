@@ -1,19 +1,22 @@
 import { size as selectionSize } from "../application/Selection.js";
 import { DiagramCanvas } from "./canvas/DiagramCanvas.js";
 import { LabelEditor } from "./canvas/LabelEditor.js";
-import { IconPalette } from "./palette/IconPalette.js";
+import { Palette } from "./palette/Palette.js";
 import { PropertiesPanel } from "./panel/PropertiesPanel.js";
 import { Toolbar } from "./Toolbar.js";
 import { useEditorSession } from "./session/useEditorSession.js";
+import { useTheme } from "./session/useTheme.js";
 import type { SaveState } from "./session/useAutosave.js";
+import type { Theme } from "../infrastructure/persistence/ThemePreference.js";
 
 export const App = () => {
   const session = useEditorSession();
   const { diagram, selection, saveState, notice, editing, actions } = session;
+  const theme = useTheme();
 
   return (
     <div className="app">
-      <IconPalette session={session} />
+      <Palette session={session} />
 
       <main className="workspace">
         <header className="toolbar">
@@ -21,7 +24,14 @@ export const App = () => {
           <span className="toolbar-divider" />
           <button onClick={() => void actions.importFile()}>Importar</button>
           <button onClick={actions.exportFile}>Exportar</button>
-          <SaveIndicator state={saveState} />
+          {/* Grupo à direita num `div` próprio (não só o `margin-left: auto` do
+              `.save-state`): o indicador de salvamento some (`display: none`, via
+              `return null`) no estado ocioso, e sem um dono fixo da margem o botão
+              de tema pularia de lugar toda vez que ele aparece e some. */}
+          <div className="toolbar-trailing">
+            <SaveIndicator state={saveState} />
+            <ThemeToggle theme={theme.theme} onToggle={theme.toggle} />
+          </div>
         </header>
 
         <div className="canvas-area">
@@ -33,7 +43,7 @@ export const App = () => {
 
           {diagram.nodes.length === 0 && (
             <p className="empty-state">
-              Arraste um logo da paleta, ou aperte <kbd>R</kbd> para desenhar uma caixa.
+              Arraste um item da paleta, ou aperte <kbd>R</kbd> para desenhar uma caixa.
             </p>
           )}
         </div>
@@ -80,3 +90,19 @@ const SaveIndicator = ({ state }: { state: SaveState }) => {
     </span>
   );
 };
+
+/**
+ * Botão de tema (`ui/tema-claro-escuro.md`). O ícone mostra o tema ATUAL — ☀ quando
+ * claro, ☾ quando escuro —, e o `title` diz o que o clique faz, a mesma convenção de
+ * atalho-no-`title` do resto da barra (`Toolbar.tsx`).
+ */
+const ThemeToggle = ({ theme, onToggle }: { theme: Theme; onToggle: () => void }) => (
+  <button
+    className="theme-toggle"
+    onClick={onToggle}
+    title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+    aria-label={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+  >
+    <span aria-hidden>{theme === "dark" ? "☾" : "☀"}</span>
+  </button>
+);

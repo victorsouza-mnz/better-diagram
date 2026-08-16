@@ -6,6 +6,7 @@
   --muted: #6b6b73;
   --accent: #3b6df5;
   --grid: #e8e8ec;
+  --danger: #c0392b;
   /* Nó de texto em modo código (`TextFormat: "code"`) — mesmas quatro cores no
      desenho SVG (`NodeLabel`) e no fundo de destaque do editor (`LabelEditor`), daí
      ficarem em token e não espalhadas pelas duas regras `.code-token--*` abaixo. */
@@ -25,11 +26,49 @@
     --muted: #9a9aa3;
     --accent: #6f95ff;
     --grid: #232329;
+    --danger: #ff8a7a;
     --code-keyword: #c678dd;
     --code-string: #98c379;
     --code-comment: #7f848e;
     --code-number: #d19a66;
   }
+}
+
+/* Escolha explícita de tema (botão em `App.tsx`, ver `ui/tema-claro-escuro.md`):
+   os dois blocos abaixo repetem os mesmos tokens dos blocos acima, presos a
+   `[data-theme]` em vez de `prefers-color-scheme`. Um seletor de atributo tem MAIS
+   especificidade que o `:root` de dentro do `@media` — por isso a escolha explícita
+   sempre vence o sistema operacional, não importa a ordem no arquivo. Sem
+   `data-theme` nenhum (ninguém clicou no botão ainda), só os blocos acima valem, e o
+   app segue o sistema operacional como sempre seguiu. */
+:root[data-theme="light"] {
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --border: #e3e3e6;
+  --text: #1a1a1c;
+  --muted: #6b6b73;
+  --accent: #3b6df5;
+  --grid: #e8e8ec;
+  --danger: #c0392b;
+  --code-keyword: #a626a4;
+  --code-string: #50a14f;
+  --code-comment: #6b6b73;
+  --code-number: #986801;
+}
+
+:root[data-theme="dark"] {
+  --bg: #131316;
+  --surface: #1b1b1f;
+  --border: #2d2d33;
+  --text: #ececed;
+  --muted: #9a9aa3;
+  --accent: #6f95ff;
+  --grid: #232329;
+  --danger: #ff8a7a;
+  --code-keyword: #c678dd;
+  --code-string: #98c379;
+  --code-comment: #7f848e;
+  --code-number: #d19a66;
 }
 
 * {
@@ -138,11 +177,52 @@ body {
   border-color: var(--border);
 }
 
-.palette-item span {
+/* Só o RÓTULO trunca com reticências — não qualquer `<span>` do item. Um seletor
+   genérico (`.palette-item span`) pegaria também `.palette-item-preview` (o
+   envoltório do ícone/glifo) e cortaria a etiqueta "UML" que se projeta um pouco
+   pra fora dele de propósito (ver `.palette-item-tag`). */
+.palette-item-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+}
+
+/* Envoltório de 28×28 comum a ícone (`<img>`) e geometria (glifo) — mesmo espaço
+   pros dois se alinharem igual na grade, e `position: relative` é a referência da
+   etiqueta "UML" (`.palette-item-tag`) abaixo. */
+.palette-item-preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+/* O glifo de uma geometria (▭ ◯ ◇ ▤ ◰) — mesma família visual da barra de
+   ferramentas (`.tool` em `Toolbar.tsx`), só maior: aqui ele é o desenho inteiro do
+   item, lá é um acento ao lado do nome. */
+.palette-item-glyph {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+/* Etiqueta pequena no canto do ícone de notação UML — continua achável como
+   notação mesmo dentro do grupo "Ícones" maior (marca + genérico + UML juntos). */
+.palette-item-tag {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  padding: 1px 4px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  color: white;
+  background: var(--accent);
+  border-radius: 4px;
 }
 
 .palette-empty {
@@ -158,6 +238,20 @@ body {
   pointer-events: none;
   transform: translate(-50%, -50%);
   opacity: 0.85;
+}
+
+/* Variante do fantasma pra geometria: sem imagem, é o próprio glifo — precisa do
+   próprio fundo/borda pra continuar legível sobre o canvas, ao contrário do
+   `<img>` do ícone, que já é opaco. */
+.palette-ghost--glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 
 /* ------------------------------------------------------------------ canvas */
@@ -253,21 +347,40 @@ button.tool--active {
   background: var(--border);
 }
 
-.save-state {
+.toolbar-trailing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-left: auto;
+}
+
+.save-state {
   font-size: 12px;
   color: var(--muted);
 }
 
 .save-state--error {
   font-weight: 600;
-  color: #c0392b;
+  color: var(--danger);
 }
 
-@media (prefers-color-scheme: dark) {
-  .save-state--error {
-    color: #ff8a7a;
-  }
+/* ------------------------------------------------------- alternador de tema */
+
+.theme-toggle {
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.theme-toggle:hover {
+  color: var(--text);
+  background: var(--bg);
+  border-color: var(--accent);
 }
 
 .notice {

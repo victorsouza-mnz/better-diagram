@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>UML — editor de diagramas</title>
+    <script>
+      // Aplica a escolha de tema salva ANTES do primeiro paint — sem isto a página
+      // pisca no tema do sistema operacional por um instante antes de trocar para o
+      // escolhido. A chave ("uml.theme") precisa continuar igual à de
+      // `infrastructure/persistence/ThemePreference.ts`; os dois não podem importar
+      // um do outro (este script roda antes de qualquer módulo).
+      (function () {
+        try {
+          var theme = localStorage.getItem("uml.theme");
+          if (theme === "light" || theme === "dark") {
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+        } catch (e) {
+          // localStorage bloqueado: segue no tema do sistema operacional, sem quebrar nada.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
