@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { attachPoints } from "../../domain/diagram/services/edgeGeometry.js";
 import { center, type Point } from "../../domain/shared/geometry.js";
@@ -13,7 +13,9 @@ import {
 } from "../session/useEditorSession.js";
 import { screenToWorld } from "./viewport.js";
 import { EdgeLayer } from "./EdgeLayer.js";
+import { Minimap } from "./Minimap.js";
 import { NodeView } from "./NodeView.js";
+import { ZoomControls } from "./ZoomControls.js";
 
 /**
  * O canvas.
@@ -57,6 +59,36 @@ export const DiagramCanvas = ({ session }: { session: EditorSession }) => {
    * entrada de histórico), por isso mora aqui e não na sessão.
    */
   const [altHover, setAltHover] = useState<{ nodeId: NodeId; at: Point } | null>(null);
+
+  /**
+   * Tamanho do canvas em pixels de TELA — o minimapa e os botões de zoom precisam
+   * dele pra saber o que "o centro da tela" ou "o que está visível agora" significa
+   * (mesma conta de `toWorld`, só que dos dois cantos, não de um ponto de evento).
+   * Via `ResizeObserver`, e não só a medida do primeiro render: a toolbar pode
+   * empurrar largura (painel de propriedades aparecendo/sumindo) sem a janela
+   * mudar de tamanho, e sem isso o minimapa ficaria com a câmera desalinhada até o
+   * próximo resize da janela.
+   */
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
+  // `useLayoutEffect`, e a medida INICIAL vem de `getBoundingClientRect` direto —
+  // não só do primeiro callback do `ResizeObserver`. O observer é assíncrono, e o
+  // primeiro disparo dele pode demorar mais que um frame (visto na prática: em
+  // headless, só chegava junto do primeiro gesto do usuário) — até lá, minimapa e
+  // zoom veriam `canvasSize` zerado e calculariam a câmera errada.
+  useLayoutEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const initial = el.getBoundingClientRect();
+    setCanvasSize({ w: initial.width, h: initial.height });
+
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      setCanvasSize({ w: width, h: height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   /**
    * O que desenhar como selecionado — a seleção de verdade, ou, durante um
@@ -232,81 +264,91 @@ export const DiagramCanvas = ({ session }: { session: EditorSession }) => {
   };
 
   return (
-    <svg
-      ref={svgRef}
-      className={[
-        "canvas",
-        connecting ? "canvas--connecting" : "",
-        tool === "select" ? "" : "canvas--creating",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      onWheel={onWheel}
-      onPointerDown={(event) => {
-        if (event.target !== svgRef.current) return; // nó ou aresta: handler deles
+    <>
+      <svg
+        ref={svgRef}
+        className={[
+          "canvas",
+          connecting ? "canvas--connecting" : "",
+          tool === "select" ? "" : "canvas--creating",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        onWheel={onWheel}
+        onPointerDown={(event) => {
+          if (event.target !== svgRef.current) return; // nó ou aresta: handler deles
 
-        // No vazio: com ferramenta de forma ativa, começa a criar; com a de
-        // seleção, começa o retângulo de seleção — a decisão entre "foi clique" e
-        // "foi arrasto" só se resolve no `endMarquee`, pelo limiar de deslocamento.
-        if (tool === "select") actions.beginMarquee(toWorld(event), event.shiftKey);
-        else actions.beginCreate(toWorld(event));
-      }}
-    >
-      <ArrowMarkers />
+          // No vazio: com ferramenta de forma ativa, começa a criar; com a de
+          // seleção, começa o retângulo de seleção — a decisão entre "foi clique" e
+          // "foi arrasto" só se resolve no `endMarquee`, pelo limiar de deslocamento.
+          if (tool === "select") actions.beginMarquee(toWorld(event), event.shiftKey);
+          else actions.beginCreate(toWorld(event));
+        }}
+      >
+        <ArrowMarkers />
 
-      <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.scale})`}>
-        {/* Arestas primeiro: ficam ATRÁS dos nós, para o logo nunca ser cortado. */}
-        <EdgeLayer
-          diagram={diagram}
-          selected={displaySelection.edges}
-          onSelect={actions.selectEdge}
-          onCycleStyle={actions.cycleEdgeStyle}
-          rectOf={rectOfId}
-        />
-
-        {connecting && <ConnectingLine session={session} />}
-        {/* Não junto com `connecting`: a linha de arrasto de verdade já cobre o
-            feedback assim que o gesto começa — a borda+seta é só do momento ANTES,
-            enquanto ainda se decide de onde puxar. */}
-        {!connecting && altHover && (
-          <AltConnectPreview diagram={diagram} hover={altHover} scale={viewport.scale} />
-        )}
-        {creating && <CreationPreview session={session} />}
-        {marquee && <MarqueeBox session={session} />}
-
-        {diagram.nodesInDrawOrder.map((node) => (
-          <NodeView
-            key={node.id}
-            node={node}
+        <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.scale})`}>
+          {/* Arestas primeiro: ficam ATRÁS dos nós, para o logo nunca ser cortado. */}
+          <EdgeLayer
             diagram={diagram}
-            selected={displaySelection.nodes.has(node.id)}
-            rect={rectOf(node)}
-            handles={canShowHandles}
-            soloSelected={isSoloSelected(node.id)}
-            scale={viewport.scale}
-            onPointerDown={(event) => {
-              event.stopPropagation();
-              // `Alt`+arrastar de QUALQUER lugar do nó conecta, em vez de mover —
-              // um atalho mais rápido do que mirar na setinha do lado direito.
-              if (event.altKey) {
-                actions.beginConnect(node.id, toWorld(event));
-                return;
-              }
-              // A seleção é resolvida dentro do `beginDrag`, e não numa chamada
-              // separada antes: dois `setState` em sequência não são visíveis um
-              // para o outro no mesmo evento.
-              actions.beginDrag(node.id, toWorld(event), event.shiftKey);
-            }}
-            onStartConnect={(event) => actions.beginConnect(node.id, toWorld(event))}
-            onEditLabel={() => actions.beginEditLabel(node.id)}
-            onStartResize={(handle, event) =>
-              actions.beginResize(node.id, handle, toWorld(event))
-            }
-            hidden={editing === node.id}
+            selected={displaySelection.edges}
+            onSelect={actions.selectEdge}
+            onCycleStyle={actions.cycleEdgeStyle}
+            rectOf={rectOfId}
           />
-        ))}
-      </g>
-    </svg>
+
+          {connecting && <ConnectingLine session={session} />}
+          {/* Não junto com `connecting`: a linha de arrasto de verdade já cobre o
+              feedback assim que o gesto começa — a borda+seta é só do momento ANTES,
+              enquanto ainda se decide de onde puxar. */}
+          {!connecting && altHover && (
+            <AltConnectPreview diagram={diagram} hover={altHover} scale={viewport.scale} />
+          )}
+          {creating && <CreationPreview session={session} />}
+          {marquee && <MarqueeBox session={session} />}
+
+          {diagram.nodesInDrawOrder.map((node) => (
+            <NodeView
+              key={node.id}
+              node={node}
+              diagram={diagram}
+              selected={displaySelection.nodes.has(node.id)}
+              rect={rectOf(node)}
+              handles={canShowHandles}
+              soloSelected={isSoloSelected(node.id)}
+              scale={viewport.scale}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                // `Alt`+arrastar de QUALQUER lugar do nó conecta, em vez de mover —
+                // um atalho mais rápido do que mirar na setinha do lado direito.
+                if (event.altKey) {
+                  actions.beginConnect(node.id, toWorld(event));
+                  return;
+                }
+                // A seleção é resolvida dentro do `beginDrag`, e não numa chamada
+                // separada antes: dois `setState` em sequência não são visíveis um
+                // para o outro no mesmo evento.
+                actions.beginDrag(node.id, toWorld(event), event.shiftKey);
+              }}
+              onStartConnect={(event) => actions.beginConnect(node.id, toWorld(event))}
+              onEditLabel={() => actions.beginEditLabel(node.id)}
+              onStartResize={(handle, event) =>
+                actions.beginResize(node.id, handle, toWorld(event))
+              }
+              hidden={editing === node.id}
+            />
+          ))}
+        </g>
+      </svg>
+
+      <Minimap
+        diagram={diagram}
+        viewport={viewport}
+        canvasSize={canvasSize}
+        onPanBy={actions.panBy}
+      />
+      <ZoomControls viewport={viewport} canvasSize={canvasSize} onZoom={actions.zoom} />
+    </>
   );
 };
 

@@ -540,6 +540,89 @@ button.tool--active {
   border-radius: 999px;
 }
 
+/* ---------------------------------------------------------------- minimapa */
+
+/* Empilhado ACIMA da barra de status, no mesmo canto — as duas ancoram em
+   `bottom`/`left`, mas em ancestrais diferentes (`.status` no `.workspace`,
+   `.minimap` no `.canvas-area`); os dois cobrem visualmente o mesmo canto, então
+   o valor de `bottom` aqui já soma a altura da barra de status por baixo. */
+.minimap {
+  position: absolute;
+  bottom: 54px;
+  left: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.minimap-background {
+  fill: var(--bg);
+}
+
+.minimap-node {
+  fill: var(--muted);
+  opacity: 0.5;
+}
+
+.minimap-camera {
+  fill: color-mix(in srgb, var(--accent) 12%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+/* --------------------------------------------------------- controles de zoom */
+
+.zoom-controls {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.zoom-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+}
+
+.zoom-button:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.zoom-button:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.5;
+}
+
+.zoom-value {
+  min-width: 42px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  user-select: none;
+}
+
 /* ---------------------------------------------- alças de redimensionamento */
 
 /* Existem no DOM sempre que nenhum outro gesto está em curso (`canShowHandles`);
