@@ -26,33 +26,42 @@ sem inchar e sem executar código de terceiros.
 
 ## Comportamento esperado
 
-- A paleta lista os ícones disponíveis, filtrável por nome, agrupados em DUAS
-  seções: **UML** e **Ícones**. A busca com o campo vazio mostra as duas seções
-  separadas, nessa ordem; buscando um termo, a lista fica achatada — a pessoa já
-  reduziu sozinha, e uma seção vazia entre duas com resultado só atrapalha.
-  - **Ícones** funde o que antes eram duas seções (Marcas e Genéricos) — a
-    distinção de licenciamento entre as duas continua existindo em
-    `CatalogIcon.category` (ver "Licenciamento" abaixo), só não é mais uma segunda
-    seção visível: pra quem monta um diagrama, "Redis" e "banco de dados" respondem
-    a mesma pergunta ("o que eu arrasto pra representar armazenamento?"), e duas
-    listas pra uma pergunta só era o problema. A ORDEM dentro de "Ícones" continua
-    marca primeiro — é o diferencial declarado do produto (ver `docs/overview.md`).
-- **UML** cobre notação básica que É um ícone de verdade — um símbolo fixo, sem
-  conteúdo próprio e sem redimensionar livre: ator, interface (lollipop), nota
-  (canto dobrado), componente (conectores laterais). Os símbolos que precisam de
-  forma de verdade (não um desenho fixo dentro de um `<image>` isolado) ficam de
-  fora deste catálogo:
+- A paleta lista os ícones disponíveis, filtrável por nome, numa seção **"Ícones"**
+  — marca (Redis, Postgres…), genérico (servidor, banco de dados…) e notação básica
+  de UML (ator, interface…), os três juntos. A distinção de licenciamento entre eles
+  continua existindo em `CatalogIcon.category` (ver "Licenciamento" abaixo), só não
+  é mais seção visível própria: pra quem monta um diagrama, "Redis" e "banco de
+  dados" respondem a mesma pergunta ("o que eu arrasto pra representar
+  armazenamento?"), e listas separadas pra uma pergunta só era o problema. A ORDEM
+  dentro de "Ícones" é marca primeiro — o diferencial declarado do produto (ver
+  `docs/overview.md`).
+  - **Notação de UML leva uma etiqueta "UML" visível na pré-visualização do item**
+    — continua achável como notação mesmo dentro do grupo maior, sem precisar de
+    uma seção só dela.
+- **"Ícones" é UMA das DUAS seções da paleta — a outra é "Geometria"**, que não é
+  ícone (não tem asset, não passa por sanitização, não tem licenciamento) e por isso
+  não faz parte deste catálogo nem desta spec — é `editor/formas-e-texto.md` quem
+  documenta o que entra nela e por quê. O que importa AQUI é o CRITÉRIO da divisão:
+  ícone escala preservando proporção (`preservesAspectRatio`, `NodeContent.ts`);
+  forma escala livre. As duas seções tornam essa diferença visível ANTES do
+  arrasto, não só depois — ver "Geometria na paleta" em `editor/formas-e-texto.md`
+  para o critério completo e o mecanismo de arrasto.
+- Notação básica de UML **é ícone de verdade** — um símbolo fixo, sem conteúdo
+  próprio e sem redimensionar livre: ator, interface (lollipop), nota (canto
+  dobrado), componente (conectores laterais). Os símbolos que precisam de forma de
+  verdade (não um desenho fixo dentro de um `<image>` isolado) ficam de fora deste
+  catálogo — são geometria, não ícone, então vivem na OUTRA seção da paleta:
   - **Caso de uso** é a elipse (ferramenta de forma, `O`) — duplicar como ícone
     arrastável só daria duas formas de chegar no mesmo resultado.
-  - **Classe** é a ferramenta de forma `C` (`ShapeKind: "umlClass"`), não um ícone —
-    tem três compartimentos de texto (nome, atributos, métodos), e um ícone estático
-    não tem onde guardar isso. Ver `editor/formas-e-texto.md`.
-  - **Pacote** é a ferramenta de forma `P` (`ShapeKind: "umlPackage"`), não um ícone
-    — ao contrário da classe, não tem compartimento (o rótulo é texto simples), mas
-    um pacote representa um módulo ou limite lógico que é redimensionado com
-    frequência, e só forma tem resize livre. Ver `editor/formas-e-texto.md`.
-- Arrastar um ícone (de qualquer seção) para o canvas cria **um nó**, num gesto. Não
-  existe passo de criar forma e depois associar ícone.
+  - **Classe** é `ShapeKind: "umlClass"`, não um ícone — tem três compartimentos de
+    texto (nome, atributos, métodos), e um ícone estático não tem onde guardar
+    isso. Ver `editor/formas-e-texto.md`.
+  - **Pacote** é `ShapeKind: "umlPackage"`, não um ícone — ao contrário da classe,
+    não tem compartimento (o rótulo é texto simples), mas um pacote representa um
+    módulo ou limite lógico que é redimensionado com frequência, e só forma tem
+    resize livre. Ver `editor/formas-e-texto.md`.
+- Arrastar um ícone (de qualquer proveniência) para o canvas cria **um nó**, num
+  gesto. Não existe passo de criar forma e depois associar ícone.
 - O usuário pode subir o próprio SVG, que passa a se comportar como qualquer ícone
   do catálogo.
 - O `.json` exportado abre noutra máquina sem ícone quebrado, mesmo se aquela versão
@@ -106,6 +115,12 @@ sem inchar e sem executar código de terceiros.
   documento nunca veem essa lista, porque nenhum deles precisa saber POR QUE um ícone
   apareceu num resultado, só que apareceu. Mesmo raciocínio de `category`: metadado
   que serve a UMA camada, não sobe pro `Asset` nem pro documento.
+- **`IconCatalog` não cobre geometria, de propósito.** `presentation/palette/geometryCatalog.ts`
+  (as cinco formas arrastáveis) é uma lista estática com a própria função de busca,
+  fora do `IconCatalog`/`CompositeIconCatalog` — forma não tem asset, não tem SVG de
+  terceiro pra sanitizar, não tem licença: dar a ela o mesmo aparato de porta
+  reservado pra uma dependência de infraestrutura que ela não tem. Ver
+  `editor/formas-e-texto.md`.
 
 Hash e sanitização são **ports**, não código de domínio: um depende de WebCrypto, o
 outro de parsing de DOM. O caso de uso os chama na borda e entrega ao agregado um
@@ -182,8 +197,10 @@ Duas fontes, duas restrições diferentes:
   `UmlIconCatalog` (notação de UML), `CompositeIconCatalog` (junta as três), hasher
   (WebCrypto), sanitizador. Os três catálogos curados carregam a lista de sinônimos
   por ícone (`keywords`) junto da própria entrada curada — não é arquivo à parte.
-- `presentation/`: paleta com as duas seções (UML, Ícones), busca,
-  arrastar-para-o-canvas, upload.
+- `presentation/`: `palette/Palette.tsx` — a seção "Ícones" da paleta, busca,
+  arrastar-para-o-canvas, upload. O componente também desenha a seção "Geometria",
+  mas essa parte é escopo de `editor/formas-e-texto.md` (fonte de dados e caso de
+  uso diferentes) — o arquivo é compartilhado, a spec não.
 - Performance: um asset por ícone distinto; SVGs de ícone são de poucos KB.
 
 ## Critérios de aceite
@@ -195,12 +212,16 @@ Duas fontes, duas restrições diferentes:
 - [ ] SVG com `<script>` ou handler `on*` é recusado no upload.
 - [ ] `.json` importado com SVG malicioso é sanitizado ou rejeitado — nunca renderizado.
 - [ ] `.json` exportado abre em instalação limpa, sem logo quebrado.
-- [x] A paleta mostra "UML" e "Ícones" como seções separadas com o campo de busca
-      vazio, e uma lista achatada (sem seções) ao digitar um termo.
-- [x] Dentro de "Ícones", marca vem antes de genérico — a fusão das duas seções
-      antigas não embaralhou a ordem.
-- [x] "Pacote" não aparece mais na seção UML da paleta — é `P` na barra de
-      ferramentas (`ShapeKind: "umlPackage"`), não ícone (`editor/formas-e-texto.md`).
+- [x] A seção "Ícones" da paleta funde marca, genérico e notação de UML — sem
+      subdivisão visível — e mantém a ordem marca-antes-de-genérico mesmo depois da
+      fusão.
+- [x] Um ícone de notação UML (Ator, Interface, Nota, Componente) mostra a etiqueta
+      "UML" na pré-visualização, dentro da seção "Ícones".
+- [x] "Pacote" não aparece mais como ícone na paleta — é geometria (`P` na barra de
+      ferramentas, `ShapeKind: "umlPackage"`), não ícone (`editor/formas-e-texto.md`).
+- [x] A busca continua mostrando "Ícones" com cabeçalho, nunca uma lista achatada
+      sem seção — ver `editor/formas-e-texto.md` para o comportamento completo da
+      busca combinada com "Geometria".
 - [x] Arrastar um ícone genérico ou de UML cria um nó igual ao de um logo de marca
       — mesmo gesto, mesmo tipo de nó.
 - [x] O SVG de um ícone genérico ou de UML chega ao canvas com `viewBox` intacto e

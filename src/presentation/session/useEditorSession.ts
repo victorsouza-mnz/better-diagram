@@ -82,6 +82,17 @@ export const SHAPE_TOOLS: Record<string, ShapeKind> = {
   umlPackage: "umlPackage",
 };
 
+/**
+ * Tamanho padrão e rótulo inicial de uma forma recém-criada — a mesma regra vale
+ * pro clique da ferramenta (`endCreate`) e pro arrasto da paleta (`addShapeAt`):
+ * caixa de classe é mais alta (três compartimentos) e já nasce com o exemplo
+ * preenchido; toda outra forma nasce no tamanho comum, sem rótulo.
+ */
+const shapeDefaults = (shape: ShapeKind): { size: { w: number; h: number }; label?: string } =>
+  shape === "umlClass"
+    ? { size: DEFAULT_UML_CLASS_SIZE, label: UML_CLASS_TEMPLATE }
+    : { size: DEFAULT_SHAPE_SIZE, label: undefined };
+
 /** Arrasto de criação em curso. */
 interface CreateState {
   readonly tool: Tool;
@@ -622,16 +633,13 @@ export const useEditorSession = () => {
 
     const shape = SHAPE_TOOLS[current.tool];
     if (shape) {
-      // Caixa de classe é mais alta (três compartimentos) e já nasce com o
-      // exemplo preenchido — em branco, ninguém adivinha que uma linha vazia
-      // separa nome, atributos e métodos.
-      const isUmlClass = shape === "umlClass";
-      const box = creationRect(current, isUmlClass ? DEFAULT_UML_CLASS_SIZE : DEFAULT_SHAPE_SIZE);
+      const { size, label } = shapeDefaults(shape);
+      const box = creationRect(current, size);
       const next = useCases.addShapeNode.execute({
         diagram: diagramRef.current,
         shape,
         rect: box,
-        label: isUmlClass ? UML_CLASS_TEMPLATE : undefined,
+        label,
       });
       // Nasce selecionado: é quase sempre o que se vai mexer em seguida.
       const created = next.nodes[next.nodes.length - 1];
@@ -649,6 +657,29 @@ export const useEditorSession = () => {
       setEditing(id);
     }
   }, [commit]);
+
+  /**
+   * Solta uma forma arrastada da paleta (grupo "Geometria") — mesmo caso de uso e
+   * mesmo tamanho padrão de `endCreate`, só que centrado no ponto onde soltou, em
+   * vez de derivado de um arrasto de definição de tamanho. Mesma regra de seleção
+   * de `addIcon`: NÃO força a seleção pro nó novo — é o mesmo gesto (arrastar da
+   * paleta e soltar no canvas), e os dois grupos da paleta devem se comportar
+   * igual nesse detalhe, ou a pessoa aprende uma regra por grupo à toa.
+   */
+  const addShapeAt = useCallback(
+    (shape: ShapeKind, at: Point) => {
+      const { size, label } = shapeDefaults(shape);
+      const box = rect(at.x - size.w / 2, at.y - size.h / 2, size.w, size.h);
+      const next = useCases.addShapeNode.execute({
+        diagram: diagramRef.current,
+        shape,
+        rect: box,
+        label,
+      });
+      commit(next, selectionRef.current, "Adicionar forma");
+    },
+    [commit],
+  );
 
   const cancelCreate = useCallback(() => {
     creatingRef.current = null;
@@ -941,6 +972,7 @@ export const useEditorSession = () => {
       endDrag,
       cancelDrag,
       addIcon,
+      addShapeAt,
       deleteSelected,
       zoom,
       panBy,

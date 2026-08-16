@@ -45,6 +45,9 @@ Um campo só significa um editor só, e nenhuma regra de "qual texto é qual".
 - Ao final da barra, um botão **"+"** é um placeholder de extensibilidade: clicar
   mostra um alerta "ainda não implementado", não faz nada além disso — ver
   "Extensibilidade da barra (placeholder)" abaixo.
+- As mesmas cinco formas também aparecem na seção "Geometria" da paleta lateral
+  esquerda, arrastáveis pro canvas — mesmo gesto que já existia pra ícone. Ver
+  "Geometria na paleta" abaixo.
 
 ## Fluxo do usuário
 
@@ -206,6 +209,76 @@ diferente.
   (uma "meia caixa" em vez de uma aba pequena) — os dois `Math.min` mantêm a aba
   sempre reconhecível como aba, em qualquer tamanho que a pessoa redimensionar.
 
+## Geometria na paleta
+
+As cinco formas (`rect`, `ellipse`, `diamond`, `umlClass`, `umlPackage`) também
+aparecem na paleta lateral esquerda, numa seção **"Geometria"** — arrastáveis pro
+canvas, o mesmo gesto que já existia pra ícone. Não substitui a barra de
+ferramentas (continua existindo, com os atalhos de sempre — ver "Extensibilidade da
+barra" abaixo): são dois CAMINHOS pro mesmo resultado, e a redundância é aceita de
+propósito.
+
+### Por que a paleta divide em "Geometria" e "Ícones"
+
+A pergunta que a divisão responde é **"como isto escala ao redimensionar?"**, não
+"de onde vem o desenho":
+
+- **Ícone preserva proporção.** `preservesAspectRatio(content)` (`NodeContent.ts`)
+  já modelava isso no domínio antes desta entrega — arrastar uma alça de um logo
+  mantém largura/altura no mesmo fator, porque um logo esticado é a marca de outra
+  empresa deformada.
+- **Forma escala livre.** As duas dimensões mudam independentes; caixa de classe
+  reflui o texto entre compartimentos; caixa de pacote redesenha a aba proporcional
+  (ver "Caixa de pacote UML" acima).
+
+A REGRA já existia; o que faltava era torná-la visível ANTES do arrasto, não só
+depois de a pessoa notar o resultado. Duas seções na paleta são a MESMA informação
+que `preservesAspectRatio` já carregava, só que na hora que importa decidir.
+
+**Notação básica de UML (ator, interface, nota, componente) é ícone, não
+geometria** — vive na seção "Ícones", com uma etiqueta "UML" na pré-visualização
+pra continuar achável como notação (ver `assets/catalogo-e-logos.md`, que é quem
+documenta o catálogo de ícones). Só Classe e Pacote são geometria — os dois
+precisam do resize livre que só forma tem (compartimento reflui, aba escala).
+
+### A busca mantém as duas seções — nunca achata
+
+Buscar um termo filtra os dois catálogos (`session.catalog.search()` pra ícone,
+`searchGeometry()` pra forma) e continua mostrando "Geometria" e "Ícones" como
+cabeçalhos separados — ao contrário de outras buscas deste app (a da paleta, antes
+desta entrega, achatava a lista). Aqui achatar esconderia exatamente a informação
+que a pessoa mais precisa no momento da escolha: **qual dos dois resultados
+escala como ela espera**. Buscar "uml", por exemplo, devolve Classe e Pacote em
+"Geometria" (batem no `keywords: ["uml"]` de cada entrada) E os quatro ícones de
+notação em "Ícones" (com a etiqueta) — a pessoa vê os dois tipos de resultado e
+escolhe sabendo qual escala como o quê.
+
+Uma seção sem nenhum resultado simplesmente não aparece (mesma regra de sempre —
+`GeometryGroup`/`IconGroup` devolvem `null` se a lista está vazia); as duas vazias
+mostram "Nada com esse nome."
+
+### O mecanismo de arrasto
+
+`presentation/palette/Palette.tsx` trata os dois grupos com a MESMA mecânica de
+arrasto (fantasma seguindo o cursor, teste de "soltou dentro do canvas", conversão
+pra coordenada de mundo — extraída em `beginPaletteDrag`, compartilhada) e só
+diverge no que acontece ao soltar:
+
+- Ícone: `session.actions.addIcon(slug, at)` — assíncrono (hash do asset).
+- Geometria: `session.actions.addShapeAt(shape, at)` — síncrono, cria a forma
+  centrada no ponto onde soltou, no tamanho padrão de sempre (`shapeDefaults`,
+  compartilhado com `endCreate` — a mesma função decide o tamanho e o rótulo
+  inicial não importa se a forma nasceu de um clique na barra ou de um arrasto da
+  paleta).
+
+**Soltar uma geometria NÃO força a seleção pro nó novo** — mesma regra de soltar um
+ícone (`addIcon` também não seleciona). É o mesmo gesto (arrastar da paleta,
+soltar no canvas) nos dois grupos; se um selecionasse e o outro não, a pessoa
+aprenderia uma regra por grupo à toa. Isso DIFERE de criar pela barra de
+ferramentas (`endCreate`), que seleciona — são gestos diferentes (arrastar vs.
+clicar+posicionar), com resultado consistente dentro de cada um, não entre os
+dois.
+
 ## Extensibilidade da barra (placeholder)
 
 Um botão **"+"** ao final da barra de ferramentas, separado das ferramentas fixas
@@ -290,6 +363,19 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
   (nasce vazio, como forma comum) — o parâmetro existe pela classe, o pacote só se
   aproveita dele já existir.
 - Nenhum invariante novo.
+- **`shapeDefaults(shape)`**, em `useEditorSession.ts` — tamanho e rótulo inicial
+  de uma forma nova, extraído de dentro de `endCreate` pra ser reaproveitado por
+  `addShapeAt` (arrasto da paleta) sem duplicar o `if` de caixa de classe duas
+  vezes. Não é caso de uso nem domínio — é a MESMA decisão de sempre
+  (`DEFAULT_SHAPE_SIZE`/`DEFAULT_UML_CLASS_SIZE`/`UML_CLASS_TEMPLATE`, já em
+  `application/editing.ts`), só isolada de onde é chamada duas vezes agora.
+- **`GeometryEntry`/`searchGeometry`**, em `presentation/palette/geometryCatalog.ts`
+  — lista estática das cinco formas com nome, atalho e sinônimo de busca, e a
+  função pura de filtro. Não é domínio nem aplicação: geometria não tem invariante
+  próprio além do que `ShapeKind`/`AddShapeNode` já garantem: é dado de UI puro,
+  testável isolado pela mesma razão que os catálogos de ícone são (`SimpleIconsCatalog`
+  etc.) — mas sem a complexidade de asset/sanitização que eles têm, porque forma não
+  tem asset.
 
 ## Impacto no documento
 
@@ -332,6 +418,12 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
   trás do `<textarea>` transparente), `measureText.ts` (`MONO_FONT_FAMILY`, medidor
   e `textHeightFor` aceitando a família de fonte). `Alt`+clique reaproveita
   `useEditorSession.endConnect` — nenhum listener novo (ver `conectar-nos.md`).
+  Geometria na paleta: `presentation/palette/geometryCatalog.ts` (dado + busca),
+  `presentation/shapeGlyphs.ts` (glifo/rótulo/atalho — fonte única com
+  `Toolbar.tsx`), `palette/Palette.tsx` (renomeado de `IconPalette.tsx` — agora
+  desenha os dois grupos e a mecânica de arrasto compartilhada,
+  `beginPaletteDrag`), `useEditorSession.ts` (`addShapeAt`, `shapeDefaults`
+  compartilhado com `endCreate`).
 - Performance: a quebra de linha é recalculada por render de nó. Se pesar, memoiza
   por (texto, largura) — não antes.
 
@@ -397,6 +489,16 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
       intactos.
 - [x] O botão "+" ao final da barra mostra o alerta "ainda não implementado" e não
       cria, seleciona ou altera nada no documento.
+- [x] A paleta mostra "Geometria" (cinco formas, mesma ordem da barra) e "Ícones"
+      como seções separadas, com o campo de busca vazio.
+- [x] Arrastar uma forma da paleta pro canvas cria o nó centrado no ponto onde
+      soltou, no tamanho padrão — caixa de classe com o exemplo preenchido, as
+      outras vazias — sem forçar seleção.
+- [x] Buscar "uml" mostra Classe e Pacote em "Geometria" E os quatro ícones de
+      notação (com a etiqueta "UML") em "Ícones" — as duas seções continuam
+      visíveis e com cabeçalho, a busca nunca achata numa lista só.
+- [x] Buscar um termo sem nenhuma forma correspondente esconde a seção "Geometria"
+      inteira (não mostra vazia); o mesmo vale pra "Ícones".
 
 ## Questões em aberto
 

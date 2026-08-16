@@ -1,3 +1,4 @@
+import { SHAPE_GLYPH, SHAPE_KEY, SHAPE_LABEL } from "./shapeGlyphs.js";
 import type { EditorSession } from "./session/useEditorSession.js";
 import type { Tool } from "./session/useEditorSession.js";
 
@@ -6,15 +7,19 @@ import type { Tool } from "./session/useEditorSession.js";
  *
  * O atalho fica visível no `title` de cada botão: um editor de canvas se usa pelo
  * teclado depois da primeira semana, e atalho que não se descobre não existe.
+ *
+ * Rótulo/tecla/glifo das cinco formas vêm de `shapeGlyphs.ts` — a MESMA fonte que o
+ * grupo "Geometria" da paleta usa (`palette/Palette.tsx`); só "Selecionar" e
+ * "Texto" são exclusivos daqui (não são `ShapeKind`, não aparecem na paleta).
  */
 const TOOLS: readonly { tool: Tool; label: string; key: string; glyph: string }[] = [
   { tool: "select", label: "Selecionar", key: "V", glyph: "▲" },
-  { tool: "rect", label: "Retângulo", key: "R", glyph: "▭" },
-  { tool: "ellipse", label: "Elipse", key: "O", glyph: "◯" },
-  { tool: "diamond", label: "Losango", key: "D", glyph: "◇" },
+  { tool: "rect", label: SHAPE_LABEL.rect, key: SHAPE_KEY.rect, glyph: SHAPE_GLYPH.rect },
+  { tool: "ellipse", label: SHAPE_LABEL.ellipse, key: SHAPE_KEY.ellipse, glyph: SHAPE_GLYPH.ellipse },
+  { tool: "diamond", label: SHAPE_LABEL.diamond, key: SHAPE_KEY.diamond, glyph: SHAPE_GLYPH.diamond },
   { tool: "text", label: "Texto", key: "T", glyph: "T" },
-  { tool: "umlClass", label: "Classe UML", key: "C", glyph: "▤" },
-  { tool: "umlPackage", label: "Pacote UML", key: "P", glyph: "◰" },
+  { tool: "umlClass", label: SHAPE_LABEL.umlClass, key: SHAPE_KEY.umlClass, glyph: SHAPE_GLYPH.umlClass },
+  { tool: "umlPackage", label: SHAPE_LABEL.umlPackage, key: SHAPE_KEY.umlPackage, glyph: SHAPE_GLYPH.umlPackage },
 ];
 
 export const Toolbar = ({ session }: { session: EditorSession }) => (
