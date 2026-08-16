@@ -17,7 +17,7 @@ sem elas o app produz um mural de logos, não um diagrama.
 - **Editar o rótulo da aresta.** O modelo já tem `label` e ele é desenhado se
   existir, mas a edição no lugar chega junto com a de rótulo de nó (etapa 2).
 - Pontos intermediários (waypoints), curvas editáveis, arestas ligando a arestas.
-- **Estilo por trecho ou cor customizada da aresta.** O ciclo de Alt+clique cobre
+- **Estilo por trecho ou cor customizada da aresta.** O ciclo de Ctrl+clique cobre
   tracejado × direção — cor e espessura são "estilo por elemento" (roadmap, etapa
   própria), não desta spec.
 
@@ -66,14 +66,14 @@ centrado onde a ligação de fato está.
   precisar de mais pontos de conexão.
 - Mover um nó faz as arestas incidentes acompanharem.
 - Clicar numa aresta a seleciona; `Delete` apaga a selecionada.
-- `Alt`+clicar numa aresta avança um passo no ciclo de 4 estilos (ver abaixo) — não
-  seleciona.
+- `Ctrl`+clicar (`Cmd` no Mac) numa aresta avança um passo no ciclo de 4 estilos (ver
+  abaixo) — não seleciona.
 - Apagar um nó leva as arestas incidentes junto (já garantido pelo agregado).
 - Tudo isso é desfazível, inclusive um passo no ciclo de estilo.
 
 ## O ciclo de estilo
 
-`Alt`+clique numa aresta percorre, em ordem, e volta ao início depois da quarta:
+`Ctrl`+clique numa aresta percorre, em ordem, e volta ao início depois da quarta:
 
 1. Sólida, unidirecional (o padrão de uma aresta recém-criada).
 2. Sólida, bidirecional.
@@ -81,8 +81,16 @@ centrado onde a ligação de fato está.
 4. Tracejada, bidirecional.
 
 Os dois eixos — tracejado e direção — são **independentes**: dois booleanos, não
-quatro nomes arbitrários. O ciclo é só a ORDEM em que Alt+clique os percorre; nada
+quatro nomes arbitrários. O ciclo é só a ORDEM em que Ctrl+clique os percorre; nada
 no domínio exige que andem juntos.
+
+**Era `Alt`+clique; passou a ser `Ctrl`+clique** para deixar `Alt` livre num gesto
+diferente: `Alt`+clique (sem arrastar) num nó de TEXTO agora alterna entre texto
+simples e código — ver "Alt+clique reaproveitado num nó de texto" abaixo e
+`editor/formas-e-texto.md`. As duas mudanças saem da mesma decisão: cada modificador
+faz UMA coisa por tipo de elemento (aresta → Ctrl cicla estilo; nó de texto → Alt
+alterna formato), em vez de `Alt` acumular sentidos diferentes dependendo de onde
+cai o clique.
 
 ## Fluxo do usuário
 
@@ -94,9 +102,12 @@ no domínio exige que andem juntos.
    - `Alt`+arrasta a partir do meio do nó (não da seta fixa) → mesmo resultado,
      partindo de qualquer ponto do corpo.
    - Solta no vazio → nada é criado, sem aviso. Desistir é o caso comum.
-   - Solta sobre o próprio nó de origem → nada é criado (nó não se liga a si mesmo).
+   - Solta sobre o próprio nó de origem → nenhuma ARESTA é criada (nó não se liga a
+     si mesmo) — mas se a origem é um nó de TEXTO, esse "soltar sobre si mesmo" É o
+     formato de um `Alt`+clique sem arrastar, e o formato do texto (simples/código)
+     alterna. Ver "Alt+clique reaproveitado num nó de texto" abaixo.
    - `Esc` durante o arrasto → cancela.
-5. `Alt`+clique na aresta criada: ela fica bidirecional. Mais um: tracejada. Mais um:
+5. `Ctrl`+clique na aresta criada: ela fica bidirecional. Mais um: tracejada. Mais um:
    tracejada e bidirecional. Mais um: volta a sólida e unidirecional.
 
 ## Interação no canvas
@@ -111,7 +122,7 @@ no domínio exige que andem juntos.
 - **Cancela:** `Esc`, ou soltar fora de um nó válido.
 - **Atalho de teclado: não tem** para criar. Criar uma aresta exige apontar dois
   alvos, e um fluxo por teclado precisaria de navegação entre nós, que não existe.
-  Mudar o estilo também não tem atalho de teclado — é `Alt`+clique, e só.
+  Mudar o estilo também não tem atalho de teclado — é `Ctrl`+clique, e só.
 - Selecionar a aresta também mostra direção e traço como botões, no painel de
   propriedades (`ui/painel-propriedades.md`) — escolha direta, sem ciclar. Os dois
   caminhos chamam o mesmo `Diagram.setEdgeStyle`; nenhum sabe do outro.
@@ -132,8 +143,8 @@ no domínio exige que andem juntos.
   não é aviso — é um estado transitório de arrasto.
 - A aresta é desenhada **atrás** dos nós, para o logo nunca ficar cortado por uma
   linha.
-- **Aresta nasce sólida e unidirecional.** `Alt`+clique muda o estilo; nada mais
-  muda — clicar sem `Alt` numa aresta sempre seleciona, nunca cicla o estilo por
+- **Aresta nasce sólida e unidirecional.** `Ctrl`+clique muda o estilo; nada mais
+  muda — clicar sem `Ctrl` numa aresta sempre seleciona, nunca cicla o estilo por
   acidente.
 - **Bidirecional desenha seta nas duas pontas**, reaproveitando o mesmo marcador de
   seta do sentido único — não é uma segunda ponta com desenho diferente.
@@ -200,6 +211,21 @@ criada a partir de um ou de outro não "sai por aquele lado" para sempre: o enca
 continua sendo derivado da geometria dos retângulos, a cada render (`attachPoints`).
 Confundir os dois é o caminho para um campo de âncora no documento que ninguém pediu.
 
+### Alt+clique reaproveitado num nó de texto
+
+`beginConnect` dispara no `pointerdown`, então um `Alt`+CLIQUE sem arrastar é, por
+construção, o mesmo gesto que um `Alt`+arrasto — só que solta exatamente onde
+começou. `endConnect` já tratava esse caso (`target === current.from`) como
+"desistiu, nada é criado"; esta entrega ACRESCENTA um efeito colateral a esse mesmo
+ramo, só quando a origem é um nó de **texto**: alterna o formato entre simples e
+código (`CycleTextFormat`, mesmo formato de caso de uso que `CycleEdgeStyle`, só que
+um toggle de dois valores em vez de um ciclo de quatro — ver
+`editor/formas-e-texto.md`).
+
+Não é um `pointerdown`/gesto novo — é o MESMO `Alt`+clique em nó que já existia,
+lido pelo código que já distinguia "clicou" de "arrastou pra outro nó". Nas outras
+variantes (forma, ícone) o ramo continua sem efeito nenhum, exatamente como antes.
+
 ### Por que UM ponto de conexão, não quatro
 
 A primeira versão desta spec tinha um ponto em cada lado do nó (`N`/`E`/`S`/`W`).
@@ -238,8 +264,9 @@ outro lado.
 - `infrastructure/`: nada.
 - `presentation/`: render das arestas (incluindo tracejado e seta dupla), a seta de
   conexão única, o `Alt`+arrasto do corpo, o cursor de `Alt`+hover, seleção de
-  aresta, `Alt`+clique para ciclo de estilo, e os botões de direção/traço no painel
-  de propriedades (`ui/painel-propriedades.md`).
+  aresta, `Ctrl`+clique para ciclo de estilo, o `Alt`+clique reaproveitado em nó de
+  texto (`useEditorSession.endConnect`), e os botões de direção/traço no painel de
+  propriedades (`ui/painel-propriedades.md`).
 - Performance: as arestas são recalculadas a cada render. Com centenas de arestas é
   aritmética trivial; se um dia pesar, memoiza por par de retângulos.
 
@@ -278,13 +305,17 @@ outro lado.
 - [x] Conectar, e depois desfazer, remove a aresta — uma entrada de histórico.
 - [x] A aresta é desenhada atrás dos nós.
 - [x] Sobrepor completamente dois nós conectados não quebra o render.
-- [x] `Alt`+clique percorre sólida-uni → sólida-bi → tracejada-uni → tracejada-bi →
+- [x] `Ctrl`+clique percorre sólida-uni → sólida-bi → tracejada-uni → tracejada-bi →
       volta ao início.
-- [x] `Alt`+clique numa aresta não a seleciona — é uma ação distinta de clicar sem
-      `Alt`.
+- [x] `Ctrl`+clique numa aresta não a seleciona — é uma ação distinta de clicar sem
+      `Ctrl`; `Alt`+clique numa aresta também não cicla mais (virou seleção comum).
 - [x] Um passo no ciclo de estilo é desfazível como **uma** entrada.
 - [x] Documento salvo antes de `dashed`/`bidirectional` existirem continua abrindo,
       com o estilo padrão.
+- [x] `Alt`+clique (sem arrastar) num nó de texto alterna entre simples e código;
+      `Alt`+arrastar do mesmo nó até outro continua conectando, sem regressão.
+- [x] `Alt`+clique num nó de forma ou ícone não faz nada — mesmo comportamento de
+      antes desta entrega.
 
 ## Questões em aberto
 

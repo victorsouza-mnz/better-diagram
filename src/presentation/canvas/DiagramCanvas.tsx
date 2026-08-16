@@ -321,6 +321,11 @@ export const DiagramCanvas = ({ session }: { session: EditorSession }) => {
                 event.stopPropagation();
                 // `Alt`+arrastar de QUALQUER lugar do nó conecta, em vez de mover —
                 // um atalho mais rápido do que mirar na setinha do lado direito.
+                // `Alt`+CLIQUE (sem arrastar) é o mesmo gesto sem deslocamento — e
+                // `endConnect` reaproveita esse caso pra alternar o formato de um nó
+                // de texto (código/simples), em vez de só desistir da conexão em
+                // silêncio. Não há ramificação aqui: os dois casos começam iguais
+                // (`beginConnect`), e só o `pointerup` decide o que aconteceu.
                 if (event.altKey) {
                   actions.beginConnect(node.id, toWorld(event));
                   return;

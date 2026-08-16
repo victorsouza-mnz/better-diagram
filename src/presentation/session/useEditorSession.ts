@@ -427,8 +427,17 @@ export const useEditorSession = () => {
   /**
    * Solta a conexão.
    *
-   * Sem alvo válido — vazio, ou o próprio nó de origem — nada é criado e nada é
-   * avisado. Desistir no meio é o caso comum, não erro.
+   * Sem alvo válido — vazio — nada é criado e nada é avisado. Desistir no meio é o
+   * caso comum, não erro.
+   *
+   * Soltar em cima do PRÓPRIO nó de origem é o formato de um `Alt`+clique sem
+   * arrastar (começou e terminou no mesmo nó — `beginConnect` já disparou no
+   * `pointerdown`, então um clique puro sempre cai aqui). Em nó de texto, esse
+   * "clique com Alt" é reaproveitado como um atalho de canvas: alterna entre texto
+   * simples e código, sem abrir o painel de propriedades — mesmo espírito do
+   * Ctrl+clique numa aresta (`cycleEdgeStyle`), reagindo ao MESMO gesto que já
+   * existia (`Alt`+algo num nó), não um listener novo. Nas outras variantes (forma,
+   * ícone) continua sem fazer nada, exatamente como antes desta entrega.
    */
   const endConnect = useCallback(
     (at: Point) => {
@@ -438,7 +447,19 @@ export const useEditorSession = () => {
       if (!current) return;
 
       const target = topmostNodeAt(diagramRef.current, at);
-      if (!target || target === current.from) return;
+      if (!target) return;
+
+      if (target === current.from) {
+        const node = diagramRef.current.node(current.from);
+        if (node?.content.kind === "text") {
+          commit(
+            useCases.cycleTextFormat.execute({ diagram: diagramRef.current, id: node.id }),
+            selectionRef.current,
+            "Mudar formato do texto",
+          );
+        }
+        return;
+      }
 
       commit(
         useCases.connectNodes.execute({
@@ -677,7 +698,7 @@ export const useEditorSession = () => {
   );
 
   /**
-   * Alt+clique numa aresta: avança um passo no ciclo de 4 estilos.
+   * Ctrl+clique numa aresta: avança um passo no ciclo de 4 estilos.
    *
    * Ação imediata, sem gesto de arrasto — commit direto, como `deleteSelected`. Não
    * mexe na seleção: cicla o estilo do que foi clicado, selecionado ou não.
@@ -695,7 +716,7 @@ export const useEditorSession = () => {
 
   /**
    * Clique num botão de estilo do painel: escolha direta (não cicla) — mesmo rótulo
-   * de undo do Alt+clique, "Mudar estilo da aresta": é a mesma mudança, só que por
+   * de undo do Ctrl+clique, "Mudar estilo da aresta": é a mesma mudança, só que por
    * um gatilho diferente, e as duas entradas precisam ficar indistinguíveis no
    * histórico para não confundir quem está desfazendo.
    */

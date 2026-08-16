@@ -12,7 +12,7 @@ interface Props {
   diagram: Diagram;
   selected: ReadonlySet<EdgeId>;
   onSelect: (id: EdgeId, additive: boolean) => void;
-  /** `Alt`+clique: avança um passo no ciclo de 4 estilos. */
+  /** `Ctrl`+clique (`Cmd` no Mac): avança um passo no ciclo de 4 estilos. */
   onCycleStyle: (id: EdgeId) => void;
   /**
    * O retângulo ATUAL de um nó — a prévia, quando ele está sendo arrastado ou
@@ -97,10 +97,13 @@ const EdgeView = ({ edge, rectOf, bow, selected, onSelect, onCycleStyle }: EdgeV
     <g
       onPointerDown={(event) => {
         event.stopPropagation();
-        // `Alt`+clique cicla o estilo — troca de gesto por completo, não soma à
-        // seleção: os dois juntos ficariam ambíguos (selecionou, ou mudou o
-        // estilo, ou os dois?).
-        if (event.altKey) {
+        // `Ctrl`+clique (`Cmd` no Mac, mesma tecla de aceleração usada em
+        // undo/redo/zoom neste app) cicla o estilo — troca de gesto por completo,
+        // não soma à seleção: os dois juntos ficariam ambíguos (selecionou, ou
+        // mudou o estilo, ou os dois?). Era `Alt`+clique; passou a ser Ctrl+clique
+        // para deixar `Alt` livre no nó (ver `DiagramCanvas` — `Alt`+clique num nó
+        // de texto agora alterna o formato).
+        if (event.ctrlKey || event.metaKey) {
           onCycleStyle(edge.id);
           return;
         }

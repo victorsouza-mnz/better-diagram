@@ -183,7 +183,7 @@ const STROKE_OPTIONS: readonly { value: boolean; label: string; svg: string }[] 
 /**
  * Direção e traço são dois eixos independentes (o VO `EdgeStyle` já modela assim,
  * ver `EdgeStyle.ts`) — dois grupos, cada um de dois botões, escolha direta. O
- * Alt+clique no canvas continua existindo, ciclando os 4 combos; os dois caminhos
+ * Ctrl+clique no canvas continua existindo, ciclando os 4 combos; os dois caminhos
  * gravam a mesma entrada de undo ("Mudar estilo da aresta") porque são a mesma
  * mudança, só por gatilhos diferentes.
  */

@@ -15,7 +15,7 @@ export interface EdgeStyle {
 export const DEFAULT_EDGE_STYLE: EdgeStyle = { dashed: false, bidirectional: false };
 
 /**
- * A ordem que Alt+clique percorre — sólida/unidirecional é o ponto de partida e
+ * A ordem que Ctrl+clique percorre — sólida/unidirecional é o ponto de partida e
  * também para onde o ciclo volta depois da quarta.
  */
 const CYCLE: readonly EdgeStyle[] = [

@@ -4,7 +4,7 @@ import { Edge } from "../domain/diagram/Edge.js";
 import { nextEdgeStyle, type EdgeStyle } from "../domain/diagram/EdgeStyle.js";
 import { shapeContent, textContent, type ShapeKind } from "../domain/diagram/NodeContent.js";
 import type { TextAlign } from "../domain/diagram/TextAlign.js";
-import type { TextFormat } from "../domain/diagram/TextFormat.js";
+import { nextTextFormat, type TextFormat } from "../domain/diagram/TextFormat.js";
 import { rect, type Point, type Rect } from "../domain/shared/geometry.js";
 import { EdgeId, NodeId } from "../domain/shared/ids.js";
 import type { IdGenerator } from "./ports/index.js";
@@ -57,7 +57,7 @@ export class ConnectNodes {
 }
 
 /**
- * Alt+clique numa aresta: avança um passo no ciclo de 4 estilos.
+ * Ctrl+clique numa aresta: avança um passo no ciclo de 4 estilos.
  *
  * A ORDEM do ciclo é regra de domínio (`nextEdgeStyle`, testada isoladamente); este
  * caso de uso só busca a aresta, pede o próximo estilo e comete — a mesma forma dos
@@ -72,7 +72,7 @@ export class CycleEdgeStyle {
 }
 
 /**
- * Escolha direta de estilo — o painel de propriedades, ao contrário do Alt+clique
+ * Escolha direta de estilo — o painel de propriedades, ao contrário do Ctrl+clique
  * (`CycleEdgeStyle`), sabe exatamente qual dos 4 estilos a pessoa quer, então não
  * há o que ciclar.
  */
@@ -122,6 +122,23 @@ export class SetTextAlign {
 export class SetTextFormat {
   execute(input: { diagram: Diagram; id: NodeId; format: TextFormat }): Diagram {
     return input.diagram.setTextFormat(input.id, input.format);
+  }
+}
+
+/**
+ * Alt+clique num nó de texto: alterna entre texto simples e código.
+ *
+ * Mesma forma de `CycleEdgeStyle` — quem chama não escolhe o valor, só pede "o
+ * próximo"; a REGRA de qual é o próximo mora no domínio (`nextTextFormat`, testada
+ * isoladamente). Nó que não é de texto (o gesto no canvas só chega aqui quando é —
+ * ver `useEditorSession.endConnect`) não faz nada, em vez de lançar: mesma postura
+ * defensiva de `CycleEdgeStyle` pra aresta inexistente.
+ */
+export class CycleTextFormat {
+  execute(input: { diagram: Diagram; id: NodeId }): Diagram {
+    const node = input.diagram.node(input.id);
+    if (!node || node.content.kind !== "text") return input.diagram;
+    return input.diagram.setTextFormat(input.id, nextTextFormat(node.content.format));
   }
 }
 

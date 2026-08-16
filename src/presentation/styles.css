@@ -49,10 +49,13 @@ body {
  * com mais de uma, `PropertiesPanel` devolve `null`: não há filho nenhum ocupando a
  * coluna, e `auto` a colapsa pra 0 sozinho — nenhum JS troca `grid-template-columns`
  * na mão.
+ *
+ * Primeira coluna: mesma largura de `.properties-panel` (`width: 264px`), por
+ * simetria — os dois painéis laterais têm a mesma largura de propósito.
  */
 .app {
   display: grid;
-  grid-template-columns: 240px 1fr auto;
+  grid-template-columns: 264px 1fr auto;
   height: 100vh;
 }
 
@@ -119,6 +122,14 @@ body {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
+  /* Item de grid, por padrão, não encolhe além do conteúdo (`min-width: auto` =
+     largura do texto sem quebra) — um nome comprido só ("Apache Kafka", "GitHub
+     Actions") empurra a COLUNA inteira além do `1fr`, e as duas colunas do grid
+     saem de tamanhos diferentes (uma "puxada" pelo nome comprido, a outra não).
+     O resultado era rolagem lateral na paleta inteira. `min-width: 0` deixa o item
+     encolher até o container — é aí que `.palette-item span` (abaixo) finalmente
+     consegue truncar com reticências, em vez do texto empurrar o layout. */
+  min-width: 0;
 }
 
 .palette-item:hover {
@@ -774,7 +785,7 @@ button.tool--active {
 /* ------------------------------------------------- painel de propriedades */
 
 .properties-panel {
-  width: 240px;
+  width: 264px;
   padding: 12px;
   background: var(--surface);
   border-left: 1px solid var(--border);

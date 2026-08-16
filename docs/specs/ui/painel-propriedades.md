@@ -21,7 +21,7 @@ entrega.
   seleção múltipla não mostra o painel — não há "o" alinhamento (ou "o" estilo) de
   um conjunto heterogêneo.
 - **Atalho de teclado para os controles do painel.** Ver "Interação no canvas" — o
-  Alt+clique da aresta é atalho DO CANVAS, não do painel, e continua existindo.
+  Ctrl+clique da aresta é atalho DO CANVAS, não do painel, e continua existindo.
 
 ## Contexto
 
@@ -39,7 +39,7 @@ aqui, só um novo consumidor dele.
 
 ## Comportamento esperado
 
-- Com **exatamente um** nó ou aresta selecionado, um painel de **240px fixos**
+- Com **exatamente um** nó ou aresta selecionado, um painel de **264px fixos**
   aparece à direita do canvas, colado na borda — mesma largura da paleta de ícones à
   esquerda, por simetria. Não é redimensionável pela pessoa.
 - Com zero ou mais de um elemento selecionado, o painel não ocupa espaço nenhum — a
@@ -55,7 +55,7 @@ aqui, só um novo consumidor dele.
     vertical continua, porque ele continua valendo.
   - **Aresta:** dois grupos de dois botões — direção (unidirecional / bidirecional)
     e traço (sólido / tracejado). Os mesmos dois eixos independentes que o
-    Alt+clique já cicla (`EdgeStyle`) — o painel só troca o gesto de "ciclar" por
+    Ctrl+clique já cicla (`EdgeStyle`) — o painel só troca o gesto de "ciclar" por
     "escolher direto".
   - **Qualquer outro item selecionado** (forma, ícone): o painel aparece, mas mostra
     uma frase — "Nada para configurar neste elemento." Não é um bug nem um estado
@@ -87,7 +87,7 @@ Alternativos:
 - Seleciona uma aresta: o painel mostra direção e traço. Clica "bidirecional": a
   ponta que faltava aparece. Clica "tracejado": o traço muda — cada clique, uma
   entrada de undo.
-- `Alt`+clique na mesma aresta: cicla para o próximo dos 4 combos — o painel
+- `Ctrl`+clique na mesma aresta: cicla para o próximo dos 4 combos — o painel
   re-renderiza com os botões certos destacados, porque lê o mesmo `edge.style` que
   o clique no canvas acabou de mudar.
 - Seleciona dois nós: o painel some.
@@ -105,11 +105,11 @@ Alternativos:
   Desfazer é `Ctrl/Cmd+Z`, como qualquer outra mudança commitada.
 - **Atalho de teclado: não tem, para nenhum dos controles.** Alinhamento tem seis
   valores (3 horizontal × 3 vertical) sem mapeamento óbvio de tecla única. Estilo de
-  aresta JÁ tem um atalho — `Alt`+clique na própria aresta, que cicla os 4 combos —
+  aresta JÁ tem um atalho — `Ctrl`+clique na própria aresta, que cicla os 4 combos —
   e ele continua sendo o atalho; o painel não ganha um segundo, redundante.
 - **Undo:** cada clique num botão do painel é **uma** entrada — "Alinhar texto" para
   o nó de texto, "Mudar estilo da aresta" para a aresta (mesmo rótulo que o
-  Alt+clique já usa: é a mesma mudança, só por um gatilho diferente, e as duas
+  Ctrl+clique já usa: é a mesma mudança, só por um gatilho diferente, e as duas
   precisam ficar indistinguíveis no histórico). Nunca uma entrada por eixo
   combinado, nem uma por combinação de dois cliques.
 
@@ -132,7 +132,7 @@ Alternativos:
   "bidirecional" andem juntas, então são dois booleanos soltos, não um enum de 4
   nomes. O painel espelha isso — dois grupos de dois, não um seletor de 4 opções.
 - **O painel não introduz um segundo caminho de mudar estilo de aresta** — chama o
-  MESMO `Diagram.setEdgeStyle` que o Alt+clique já chama (via `CycleEdgeStyle`); só
+  MESMO `Diagram.setEdgeStyle` que o Ctrl+clique já chama (via `CycleEdgeStyle`); só
   não cicla, escolhe direto. Um valor mudado por um caminho aparece correto no outro
   na próxima leitura, porque os dois leem o mesmo `edge.style`.
 - **Painel mostra controle só para seleção única.** Não há "alinhamento de vários"
@@ -180,7 +180,7 @@ Alternativos:
 - Nenhum invariante do agregado muda — `align` é opaco para as 5 regras existentes
   do `Diagram` (nenhuma delas olha para dentro de `content`).
 - **Estilo de aresta não ganha modelo novo** — `EdgeStyle`, `Diagram.setEdgeStyle` e
-  o VO já existiam (spec `editor/conectar-nos.md`, feature do Alt+clique). Só o
+  o VO já existiam (spec `editor/conectar-nos.md`, feature do Ctrl+clique). Só o
   **caso de uso** é novo: `SetEdgeStyle`, em `application/editing.ts`, ao lado de
   `CycleEdgeStyle` — mesma entrada (`diagram`, `id`, `style`), sem ciclar: recebe o
   estilo final pronto e comete.
@@ -198,6 +198,15 @@ Alternativos:
   formato de `setTextAlign`.
 - **Caso de uso novo:** `SetTextFormat`, em `application/editing.ts`, ao lado de
   `SetTextAlign`.
+- **`nextTextFormat(current: TextFormat): TextFormat`**, em `TextFormat.ts` — o
+  "outro" formato, testado isoladamente. Mesmo papel de `nextEdgeStyle`, só que um
+  toggle de dois valores em vez de um ciclo de quatro.
+- **Caso de uso novo:** `CycleTextFormat` — busca o nó, pede `nextTextFormat` e
+  comete; nó que não existe ou não é de texto não faz nada (mesma postura de
+  `CycleEdgeStyle` pra aresta inexistente). É quem `Alt`+clique num nó de texto
+  chama, de dentro de `useEditorSession.endConnect` — ver `editor/conectar-nos.md`
+  (seção "Alt+clique reaproveitado num nó de texto") para o gatilho; aqui é só o
+  caso de uso que ele aciona.
 - **Destaque de sintaxe é lógica de apresentação, não de domínio** — o tokenizador
   (`presentation/canvas/jsHighlight.ts`, função pura testada isolada) só decide COR
   por token para desenhar; nada disso entra no agregado ou no documento. O documento
@@ -232,8 +241,8 @@ Alternativos:
   factory), `Node.ts` (`withTextAlign`, `withTextFormat`), `Diagram.ts`
   (`setTextAlign`, `setTextFormat`), `errors.ts` (`NotATextNode`). Nada novo para
   estilo de aresta — reaproveita `EdgeStyle.ts`.
-- `application/`: `SetTextAlign`, `SetTextFormat` e `SetEdgeStyle`, os três em
-  `editing.ts`.
+- `application/`: `SetTextAlign`, `SetTextFormat`, `CycleTextFormat` e
+  `SetEdgeStyle`, os quatro em `editing.ts`.
 - `infrastructure/`: nada — o codec mora no domínio (`document/codec.ts` e
   `document/types.ts`, já contados acima).
 - `presentation/`: o painel (`presentation/panel/PropertiesPanel.tsx`, novo — os
@@ -288,7 +297,7 @@ Alternativos:
 - [x] O alinhamento sobrevive à recarga e ao export/import.
 - [x] Clicar "bidirecional" numa aresta faz a segunda ponta de seta aparecer; clicar
       "tracejado" muda o traço — cada um independente do outro.
-- [x] Mudar o estilo pelo painel e pelo `Alt`+clique ficam consistentes: o botão
+- [x] Mudar o estilo pelo painel e pelo `Ctrl`+clique ficam consistentes: o botão
       certo aparece destacado depois de qualquer um dos dois caminhos.
 - [x] `schemaVersion` continua `1`.
 - [x] Selecionar um nó de texto mostra o grupo "Formato" com dois botões (texto
@@ -299,6 +308,9 @@ Alternativos:
 - [x] Clicar "texto simples" de volta traz o grupo horizontal e desliga o destaque,
       sem alterar o texto do rótulo.
 - [x] O formato sobrevive à recarga e ao export/import.
+- [x] Mudar o formato pelo painel e pelo `Alt`+clique no nó (canvas) ficam
+      consistentes: o botão certo aparece destacado depois de qualquer um dos dois
+      caminhos — mesma garantia que já vale para estilo de aresta.
 
 ## Questões em aberto
 

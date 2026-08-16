@@ -232,10 +232,20 @@ Um elemento HTML posicionado **sobre** o canvas, não um `foreignObject`:
 
 Um nó de **texto** (só ele — forma e ícone não têm) pode ser marcado como "código":
 o rótulo passa a ser desenhado em fonte monoespaçada com destaque mínimo de sintaxe
-JS (palavra-chave, string, comentário de linha, número). O botão que liga isso mora
-no painel de propriedades, não aqui — ver [`painel-propriedades.md`](../ui/painel-propriedades.md)
-para o controle; esta seção descreve o que o formato MUDA no desenho e na edição do
-nó de texto.
+JS (palavra-chave, string, comentário de linha, número). Dois jeitos de ligar:
+
+- O botão "Formato" no painel de propriedades — ver
+  [`painel-propriedades.md`](../ui/painel-propriedades.md) para o controle.
+- **`Alt`+clique direto no nó** (sem arrastar): alterna entre simples e código sem
+  abrir o painel. É o MESMO gesto de `Alt`+arrasto que já existia para conectar —
+  `Alt`+clique é só a versão sem deslocamento dele, e esta entrega reaproveita esse
+  caso (que antes só desistia em silêncio) para nó de texto. `Alt`+arrastar até OUTRO
+  nó continua conectando normalmente, mesmo a partir de um nó de texto — só o clique
+  parado é que muda de sentido. Ver `editor/conectar-nos.md` (seção "Alt+clique
+  reaproveitado num nó de texto") para o mecanismo. Nas outras variantes (forma,
+  ícone), `Alt`+clique continua sem efeito.
+
+Esta seção descreve o que o formato MUDA no desenho e na edição do nó de texto.
 
 - **"Mínimo" é decisão de produto, não limitação técnica.** O rótulo de um nó é um
   trecho curto pra ilustrar um diagrama, não um arquivo fonte — cobrir template
@@ -320,7 +330,8 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
   `canvas/jsHighlight.ts` (tokenizador puro), `NodeLabel.tsx` (ramo de desenho com um
   `<tspan>` colorido por token), `LabelEditor.tsx` (o `<div>` de fundo colorido por
   trás do `<textarea>` transparente), `measureText.ts` (`MONO_FONT_FAMILY`, medidor
-  e `textHeightFor` aceitando a família de fonte).
+  e `textHeightFor` aceitando a família de fonte). `Alt`+clique reaproveita
+  `useEditorSession.endConnect` — nenhum listener novo (ver `conectar-nos.md`).
 - Performance: a quebra de linha é recalculada por render de nó. Se pesar, memoiza
   por (texto, largura) — não antes.
 
@@ -374,6 +385,9 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
       rótulo — só a apresentação muda.
 - [x] O formato sobrevive à recarga e ao export/import; um documento salvo antes do
       campo existir abre como texto simples.
+- [x] `Alt`+clique (sem arrastar) num nó de texto alterna o formato, igual ao botão
+      do painel; `Alt`+arrastar do mesmo nó até outro continua conectando.
+- [x] `Alt`+clique num nó de forma ou ícone não faz nada.
 - [x] `P` + clique cria uma caixa de pacote UML vazia, com a aba no canto superior
       esquerdo e cantos retos.
 - [x] O rótulo de uma caixa de pacote é texto simples centralizado, sem

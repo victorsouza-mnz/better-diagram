@@ -19,3 +19,13 @@ export type TextFormat = "plain" | "code";
  * sempre: texto simples, sem mudar a aparência de diagramas já salvos.
  */
 export const DEFAULT_TEXT_FORMAT: TextFormat = "plain";
+
+/**
+ * O outro valor — usado pelo atalho de `Alt`+clique num nó de texto (alterna, não
+ * escolhe), o mesmo espírito de `nextEdgeStyle`, só que um ciclo de DOIS valores em
+ * vez de quatro: só existem "plain" e "code" hoje, então "próximo" é sempre "o
+ * outro". Se um terceiro formato chegar (markdown?), isto deixa de ser um `if` e
+ * vira um ciclo de verdade — a MESMA mudança que `nextEdgeStyle` já fez o caminho.
+ */
+export const nextTextFormat = (current: TextFormat): TextFormat =>
+  current === "plain" ? "code" : "plain";
