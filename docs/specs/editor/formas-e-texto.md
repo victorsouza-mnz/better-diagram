@@ -241,6 +241,15 @@ pra continuar achável como notação (ver `assets/catalogo-e-logos.md`, que é 
 documenta o catálogo de ícones). Só Classe e Pacote são geometria — os dois
 precisam do resize livre que só forma tem (compartimento reflui, aba escala).
 
+**Classe e Pacote também são notação UML, só que geometria — e carregam a MESMA
+etiqueta.** `GeometryEntry.uml` (`geometryCatalog.ts`) marca as duas; o NOME delas
+na paleta não leva mais o sufixo ("Classe", "Pacote", não "Classe UML"/"Pacote
+UML") — é a etiqueta quem avisa, exatamente como já valia pro ícone. A barra de
+ferramentas continua dizendo o nome por extenso (`SHAPE_LABEL`, em
+`shapeGlyphs.ts`, ainda tem `"Classe UML"`/`"Pacote UML"` — só a paleta usa o nome
+curto): o botão da barra tem espaço de sobra pro nome inteiro no `title`; o item de
+28px da grade não, e a etiqueta já preenche esse papel ali.
+
 ### A busca mantém as duas seções — nunca achata
 
 Buscar um termo filtra os dois catálogos (`session.catalog.search()` pra ícone,
@@ -497,6 +506,9 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
 - [x] Buscar "uml" mostra Classe e Pacote em "Geometria" E os quatro ícones de
       notação (com a etiqueta "UML") em "Ícones" — as duas seções continuam
       visíveis e com cabeçalho, a busca nunca achata numa lista só.
+- [x] Na seção "Geometria", os itens de Classe e Pacote mostram a etiqueta "UML"
+      na pré-visualização e o nome SEM o sufixo ("Classe", "Pacote") — a barra de
+      ferramentas continua dizendo "Classe UML"/"Pacote UML" por extenso.
 - [x] Buscar um termo sem nenhuma forma correspondente esconde a seção "Geometria"
       inteira (não mostra vazia); o mesmo vale pra "Ícones".
 

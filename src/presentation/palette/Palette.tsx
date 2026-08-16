@@ -19,11 +19,13 @@ import { searchGeometry, type GeometryEntry } from "./geometryCatalog.js";
  *
  * - **"Geometria"**: as cinco formas (`ShapeKind`) — cresce "de forma inteligente"
  *   (largura e altura livres, sem travar proporção; caixa de classe reflui texto em
- *   compartimentos). Produz `content.kind === "shape"`.
+ *   compartimentos). Produz `content.kind === "shape"`. Classe e Pacote são notação
+ *   UML — o nome não carrega mais o sufixo ("Classe", não "Classe UML"); quem avisa
+ *   é a etiqueta "UML" na pré-visualização (`GeometryEntry.uml`).
  * - **"Ícones"**: logo de marca, símbolo genérico e notação básica de UML — os TRÊS
  *   já eram `content.kind === "icon"` (a antiga seção "UML" da paleta já era ícone,
  *   só chamada diferente; ver `docs/specs/assets/catalogo-e-logos.md`). Cresce só de
- *   TAMANHO, mantendo a proporção do desenho. Ícone de notação UML carrega uma
+ *   TAMANHO, mantendo a proporção do desenho. Ícone de notação UML carrega a MESMA
  *   etiqueta "UML" na pré-visualização — continua achável como notação, mesmo
  *   dentro do grupo maior.
  *
@@ -193,6 +195,9 @@ const GeometryGroup = ({
               <span className="palette-item-glyph" aria-hidden>
                 {SHAPE_GLYPH[entry.shape]}
               </span>
+              {/* Mesma etiqueta do ícone de notação UML — a razão de existir é a
+                  MESMA (ver `GeometryEntry.uml`), só a fonte do dado muda. */}
+              {entry.uml && <span className="palette-item-tag">UML</span>}
             </span>
             <span className="palette-item-label">{entry.label}</span>
           </button>

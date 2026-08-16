@@ -209,12 +209,16 @@ body {
   color: var(--muted);
 }
 
-/* Etiqueta pequena no canto do ícone de notação UML — continua achável como
-   notação mesmo dentro do grupo "Ícones" maior (marca + genérico + UML juntos). */
+/* Etiqueta pequena no canto do ícone/glifo de notação UML — continua achável como
+   notação mesmo dentro do grupo maior (ícone: marca + genérico + UML juntos;
+   geometria: ao lado de retângulo/elipse/losango). Empurrada mais pro canto
+   (`top`/`right` maiores que o padding do envoltório) de propósito: mais perto de
+   zero, ela cai em cima do desenho — o envoltório de 28px é pequeno, e um selo
+   colado no meio do ícone atrapalha mais do que ajuda. */
 .palette-item-tag {
   position: absolute;
-  top: -4px;
-  right: -6px;
+  top: -7px;
+  right: -9px;
   padding: 1px 4px;
   font-size: 8px;
   font-weight: 700;

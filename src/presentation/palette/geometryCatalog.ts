@@ -23,6 +23,16 @@ export interface GeometryEntry {
   readonly key: string;
   /** Termos além do nome que também devem achar esta forma na busca. */
   readonly keywords: readonly string[];
+  /**
+   * Geometria de NOTAÇÃO UML — a paleta mostra a etiqueta "UML" na
+   * pré-visualização em vez do nome carregar o sufixo (`label` aqui já vem sem
+   * "UML": "Classe", não "Classe UML"). Mesmo padrão do ícone de notação UML
+   * (`CatalogIcon.category === "uml"`, em `Palette.tsx`) — a etiqueta é quem avisa
+   * "isto é notação", o nome fica curto. A barra de ferramentas (`Toolbar.tsx`)
+   * continua dizendo "Classe UML"/"Pacote UML" por extenso — ali não tem etiqueta,
+   * só o `title` do botão, e é mais espaçoso que um item de grade de 28px.
+   */
+  readonly uml?: boolean;
 }
 
 /** Mesma ordem da barra de ferramentas — a pessoa já reconhece essa sequência. */
@@ -30,8 +40,8 @@ const GEOMETRIES: readonly GeometryEntry[] = [
   { shape: "rect", label: SHAPE_LABEL.rect, key: SHAPE_KEY.rect, keywords: ["quadrado", "caixa"] },
   { shape: "ellipse", label: SHAPE_LABEL.ellipse, key: SHAPE_KEY.ellipse, keywords: ["círculo", "oval", "caso de uso"] },
   { shape: "diamond", label: SHAPE_LABEL.diamond, key: SHAPE_KEY.diamond, keywords: ["decisão", "losango"] },
-  { shape: "umlClass", label: SHAPE_LABEL.umlClass, key: SHAPE_KEY.umlClass, keywords: ["class", "uml"] },
-  { shape: "umlPackage", label: SHAPE_LABEL.umlPackage, key: SHAPE_KEY.umlPackage, keywords: ["package", "uml", "módulo"] },
+  { shape: "umlClass", label: "Classe", key: SHAPE_KEY.umlClass, keywords: ["class", "uml", "classe uml"], uml: true },
+  { shape: "umlPackage", label: "Pacote", key: SHAPE_KEY.umlPackage, keywords: ["package", "uml", "módulo", "pacote uml"], uml: true },
 ];
 
 /** Mesma regra de substring de `SimpleIconsCatalog`/`GenericIconCatalog`. */

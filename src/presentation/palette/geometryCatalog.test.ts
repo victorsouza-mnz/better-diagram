@@ -40,4 +40,25 @@ describe("searchGeometry", () => {
       umlPackage: "P",
     });
   });
+
+  it("só classe e pacote são marcadas como notação UML (`uml: true`)", () => {
+    const byShape = Object.fromEntries(searchGeometry("").map((e) => [e.shape, e.uml ?? false]));
+    expect(byShape).toEqual({
+      rect: false,
+      ellipse: false,
+      diamond: false,
+      umlClass: true,
+      umlPackage: true,
+    });
+  });
+
+  it("o nome de classe e pacote não carrega mais o sufixo 'UML' — a etiqueta é quem avisa", () => {
+    const byShape = Object.fromEntries(searchGeometry("").map((e) => [e.shape, e.label]));
+    expect(byShape["umlClass"]).toBe("Classe");
+    expect(byShape["umlPackage"]).toBe("Pacote");
+  });
+
+  it("buscar 'uml' ainda acha classe e pacote — pelo keyword, não mais pelo nome", () => {
+    expect(searchGeometry("uml").map((e) => e.shape).sort()).toEqual(["umlClass", "umlPackage"]);
+  });
 });
