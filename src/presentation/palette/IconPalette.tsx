@@ -6,12 +6,22 @@ import { screenToWorld } from "../canvas/viewport.js";
 
 /**
  * Paleta de ícones — logos de marca, símbolos genéricos de arquitetura e notação
- * básica de UML.
+ * básica de UML, agrupados em DUAS seções: "UML" e "Ícones".
+ *
+ * "Ícones" funde marca e genérico — as duas categorias continuam existindo em
+ * `CatalogIcon.category` (a distinção importa pra licenciamento: logo é marca de
+ * terceiro, símbolo genérico não é — ver `docs/specs/assets/catalogo-e-logos.md`),
+ * só não viram MAIS uma seção na paleta: pra quem está montando um diagrama, "Redis"
+ * e "banco de dados" são a mesma pergunta ("o que eu arrasto pra representar
+ * armazenamento?"), e forçar a pessoa a olhar duas listas pra responder uma pergunta
+ * só era o problema, não a marca em si. A ORDEM dentro de "Ícones" continua marca
+ * primeiro (é o diferencial declarado do produto — `docs/overview.md`): o catálogo
+ * já devolve nessa ordem, e o filtro abaixo preserva.
  *
  * Arrastar um ícone daqui para o canvas cria UM nó, num gesto — não existe passo de
  * criar uma forma e depois associar o ícone. É a spec de assets em código.
  *
- * Buscando, a lista fica achatada: agrupar por categoria só ajuda quando se está
+ * Buscando, a lista fica achatada: agrupar por seção só ajuda quando se está
  * navegando o catálogo inteiro; com um filtro digitado, a pessoa já reduziu a lista
  * sozinha, e uma seção vazia entre duas com resultado só atrapalha.
  */
@@ -23,9 +33,8 @@ export const IconPalette = ({ session }: { session: EditorSession }) => {
 
   const icons = session.catalog.search(query);
   const isBrowsing = query.trim() === "";
-  const brands = icons.filter((icon) => icon.category === "brand");
-  const generics = icons.filter((icon) => icon.category === "generic");
   const uml = icons.filter((icon) => icon.category === "uml");
+  const others = icons.filter((icon) => icon.category !== "uml");
 
   const startDrag = (slug: string) => (event: React.PointerEvent) => {
     // Pegar um ícone da paleta larga qualquer ferramenta de forma armada: as duas
@@ -79,9 +88,8 @@ export const IconPalette = ({ session }: { session: EditorSession }) => {
       <div className="palette-body">
         {isBrowsing ? (
           <>
-            <IconGroup label="Marcas" icons={brands} onStartDrag={startDrag} />
-            <IconGroup label="Genéricos" icons={generics} onStartDrag={startDrag} />
             <IconGroup label="UML" icons={uml} onStartDrag={startDrag} />
+            <IconGroup label="Ícones" icons={others} onStartDrag={startDrag} />
           </>
         ) : (
           <div className="palette-grid">

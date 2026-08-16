@@ -31,8 +31,8 @@ Um campo só significa um editor só, e nenhuma regra de "qual texto é qual".
 
 ## Comportamento esperado
 
-- A barra de ferramentas oferece selecionar, retângulo, elipse, losango, texto e
-  caixa de classe UML.
+- A barra de ferramentas oferece selecionar, retângulo, elipse, losango, texto,
+  caixa de classe UML e caixa de pacote UML.
 - Com uma ferramenta de forma ativa, arrastar no vazio desenha a forma no tamanho
   arrastado; um clique simples cria no tamanho padrão.
 - A ferramenta volta para "selecionar" assim que o elemento é criado.
@@ -40,6 +40,11 @@ Um campo só significa um editor só, e nenhuma regra de "qual texto é qual".
 - O texto quebra em várias linhas, dentro da largura do elemento.
 - Caixa de classe UML desenha três compartimentos (nome / atributos / métodos),
   separados por linha em branco no rótulo — ver "Caixa de classe UML" abaixo.
+- Caixa de pacote UML desenha uma aba no canto superior esquerdo — ver "Caixa de
+  pacote UML" abaixo.
+- Ao final da barra, um botão **"+"** é um placeholder de extensibilidade: clicar
+  mostra um alerta "ainda não implementado", não faz nada além disso — ver
+  "Extensibilidade da barra (placeholder)" abaixo.
 
 ## Fluxo do usuário
 
@@ -71,9 +76,9 @@ Alternativos:
   convenção dos editores de canvas — e rótulo de diagrama quebra linha com
   frequência, então `Enter` gravando seria o atalho errado no gesto mais comum.
 - **Atalhos:** `V` selecionar · `R` retângulo · `O` elipse · `D` losango ·
-  `T` texto · `C` caixa de classe UML · `Esc` volta para selecionar. Apertar a tecla
-  é um toque, não precisa ficar segurada: a ferramenta fica armada até o próximo
-  clique+arrasto criar o elemento, ou até `Esc`.
+  `T` texto · `C` caixa de classe UML · `P` caixa de pacote UML · `Esc` volta para
+  selecionar. Apertar a tecla é um toque, não precisa ficar segurada: a ferramenta
+  fica armada até o próximo clique+arrasto criar o elemento, ou até `Esc`.
 - **Iniciar o arrasto de um ícone da paleta cancela a ferramenta de forma ativa**,
   voltando para "selecionar" — as duas formas de criar nó (desenhar vs. soltar um
   logo) não ficam armadas ao mesmo tempo. Sem isso, um clique no canvas logo depois
@@ -175,6 +180,45 @@ que faltam ficam vazios (uma caixa só com o nome, por exemplo, é legítima).
 - **Cantos retos, não arredondados** — única forma nesta lista que não arredonda; é
   o que distingue a caixa de classe de um retângulo comum ao olhar de longe.
 
+## Caixa de pacote UML
+
+Notação padrão de pacote em diagrama UML: um retângulo com uma aba menor no canto
+superior esquerdo — a mesma "aba de pasta" que já existia como ÍCONE estático antes
+desta entrega. Não é um ícone (a paleta não tem mais "Pacote" — ver
+`assets/catalogo-e-logos.md`): é uma `ShapeKind` a mais, `"umlPackage"`, irmã de
+`rect`/`ellipse`/`diamond`/`umlClass`. Ganha de graça tudo que já vale para forma —
+redimensionar livre, arrastar, conectar, undo, persistência — só o CONTORNO é
+diferente.
+
+- **Sem compartimento — ao contrário da classe.** O rótulo é texto simples,
+  centralizado no corpo da caixa, mesma regra de `rect`/`ellipse`/`diamond`. Um
+  pacote de arquitetura representa um módulo ou um limite lógico, não uma lista de
+  membros — não há convenção nenhuma pra codificar no texto, então não há nada a
+  interpretar em pedaços.
+- **Nasce vazio**, ao contrário da classe: sem convenção de campos separados por
+  linha em branco, não há exemplo nenhum que valha a pena pré-preencher.
+- **Cantos retos, não arredondados** — mesma razão da classe: notação UML não
+  arredonda, e a única forma que arredondasse quebraria a leitura "isto é notação
+  UML" ao olhar de longe.
+- **A aba escala com a caixa, com um teto.** Largura da aba: até 45% da largura da
+  caixa, no máximo 64px. Altura da aba: até 30% da altura da caixa, no máximo 22px.
+  Sem o teto, uma caixa bem larga ou bem alta desenharia uma aba desproporcional
+  (uma "meia caixa" em vez de uma aba pequena) — os dois `Math.min` mantêm a aba
+  sempre reconhecível como aba, em qualquer tamanho que a pessoa redimensionar.
+
+## Extensibilidade da barra (placeholder)
+
+Um botão **"+"** ao final da barra de ferramentas, separado das ferramentas fixas
+por um divisor visual. Clicar mostra `window.alert("Adicionar atalho: ainda não
+implementado.")` — não cria nada, não abre formulário nenhum.
+
+É intencionalmente um gancho sem função ainda: a barra vai crescer (mais notação
+UML, mais formas) e cada entrega nova hoje significa mexer em `Toolbar.tsx` e nos
+atalhos fixos. O botão marca ONDE a extensibilidade vai entrar quando a próxima
+decisão de produto (cadastrar atalho próprio? escolher de uma lista maior?)
+estiver tomada — sem fingir que a função já existe, e sem deixar a barra muda sobre
+o que vem a seguir.
+
 ## O editor de rótulo
 
 Um elemento HTML posicionado **sobre** o canvas, não um `foreignObject`:
@@ -228,23 +272,25 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
   quanto pelo fim da edição de rótulo (altura, derivada do texto) — ver
   [`redimensionar.md`](redimensionar.md) para a regra completa da alça em nó de
   texto.
-- **`ShapeKind`** ganha `"umlClass"` — mesmo tipo, valor a mais, não um `kind` de
-  `NodeContent` novo (`NodeContent.ts`).
+- **`ShapeKind`** ganha `"umlClass"` e `"umlPackage"` — mesmo tipo, dois valores a
+  mais, não um `kind` de `NodeContent` novo (`NodeContent.ts`).
 - **`AddShapeNode.execute`** ganha um `label` opcional (default `""`, o de sempre) —
   é o que permite a caixa de classe nascer com o exemplo preenchido sem virar um
-  segundo caso de uso ou uma segunda entrada de undo.
+  segundo caso de uso ou uma segunda entrada de undo. Pacote não usa esse parâmetro
+  (nasce vazio, como forma comum) — o parâmetro existe pela classe, o pacote só se
+  aproveita dele já existir.
 - Nenhum invariante novo.
 
 ## Impacto no documento
 
 - Campos: nenhum novo. `content.kind === "shape" | "text"` e `label` já existem no
-  v1, e o codec já os lê e escreve. `content.shape` ganha `"umlClass"` como valor
-  válido a mais — mesmo campo, mesmo tipo (`string`, validado por allowlist no
-  codec), só mais uma entrada aceita.
+  v1, e o codec já os lê e escreve. `content.shape` ganha `"umlClass"` e
+  `"umlPackage"` como valores válidos a mais — mesmo campo, mesmo tipo (`string`,
+  validado por allowlist no codec), só mais duas entradas aceitas.
 - `schemaVersion`: **não sobe** — mesma lógica de qualquer valor novo numa allowlist
   já existente (`SHAPES`, em `document/codec.ts`): documento salvo antes de
-  `"umlClass"` existir não é afetado; documento novo com `"umlClass"` só não abriria
-  numa versão bem mais antiga do app, que já recusaria com erro claro
+  `"umlClass"`/`"umlPackage"` existirem não é afetado; documento novo com um deles
+  só não abriria numa versão bem mais antiga do app, que já recusaria com erro claro
   ("shape desconhecido"), nunca com corrupção silenciosa.
 - Quebras de linha vão no próprio `label`, como `\n` — não viram campo novo. Os
   compartimentos da caixa de classe também: são a MESMA string, com linhas em
@@ -257,14 +303,20 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
 
 ## Impacto por camada
 
-- `domain/`: `NodeContent.ts` (`ShapeKind` ganha `"umlClass"`).
+- `domain/`: `NodeContent.ts` (`ShapeKind` ganha `"umlClass"` e `"umlPackage"`).
 - `application/`: `AddTextNode`; `AddShapeNode` ganha o `label` opcional;
-  `DEFAULT_UML_CLASS_SIZE` e `UML_CLASS_TEMPLATE` em `editing.ts`.
-- `infrastructure/`: nada.
-- `presentation/`: barra de ferramentas, ferramenta ativa, gesto de criação, editor
-  de rótulo sobreposto, `wrapText` + o medidor, render em `<tspan>`. Caixa de
-  classe: `NodeView.tsx` (canto reto), `NodeLabel.tsx` (`UmlClassBody` — separa o
-  `label` em três, desenha os divisores e cada compartimento). Modo código:
+  `DEFAULT_UML_CLASS_SIZE` e `UML_CLASS_TEMPLATE` em `editing.ts`. Pacote não ganha
+  constante própria — reaproveita `DEFAULT_SHAPE_SIZE`, mesmo tamanho de
+  retângulo/elipse/losango.
+- `infrastructure/`: `UmlIconCatalog.ts` perde a entrada `uml-package` (o ícone
+  estático saiu, virou forma).
+- `presentation/`: barra de ferramentas (`Toolbar.tsx`, tool `umlPackage` e atalho
+  `P` em `useEditorSession.ts`/`DiagramCanvas.tsx`), ferramenta ativa, gesto de
+  criação, editor de rótulo sobreposto, `wrapText` + o medidor, render em `<tspan>`.
+  Caixa de classe: `NodeView.tsx` (canto reto), `NodeLabel.tsx` (`UmlClassBody` —
+  separa o `label` em três, desenha os divisores e cada compartimento). Caixa de
+  pacote: `NodeView.tsx` só (dois `<rect>` adjacentes — aba e corpo; o rótulo cai no
+  ramo genérico de `NodeLabel.tsx`, sem componente próprio). Modo código:
   `canvas/jsHighlight.ts` (tokenizador puro), `NodeLabel.tsx` (ramo de desenho com um
   `<tspan>` colorido por token), `LabelEditor.tsx` (o `<div>` de fundo colorido por
   trás do `<textarea>` transparente), `measureText.ts` (`MONO_FONT_FAMILY`, medidor
@@ -322,6 +374,15 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
       rótulo — só a apresentação muda.
 - [x] O formato sobrevive à recarga e ao export/import; um documento salvo antes do
       campo existir abre como texto simples.
+- [x] `P` + clique cria uma caixa de pacote UML vazia, com a aba no canto superior
+      esquerdo e cantos retos.
+- [x] O rótulo de uma caixa de pacote é texto simples centralizado, sem
+      compartimento — editar, redimensionar e o piso de altura seguem a mesma regra
+      de `rect`/`ellipse`/`diamond`.
+- [x] A caixa de pacote sobrevive à recarga, com o `shape: "umlPackage"` e o rótulo
+      intactos.
+- [x] O botão "+" ao final da barra mostra o alerta "ainda não implementado" e não
+      cria, seleciona ou altera nada no documento.
 
 ## Questões em aberto
 
@@ -329,3 +390,7 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
       ou um cadeado na barra?
 - [ ] Alinhamento vertical do texto dentro da forma quando ele é menor que a caixa:
       centralizado sempre, ou topo?
+- [ ] O que o botão "+" da barra vai realmente fazer — cadastrar um atalho de
+      forma próprio, ou abrir uma lista maior de notação pra escolher e fixar?
+      Decisão de produto ainda não tomada; até lá, ele só existe como gancho visual
+      (ver "Extensibilidade da barra (placeholder)").

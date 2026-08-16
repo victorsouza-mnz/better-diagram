@@ -117,6 +117,17 @@ describe("codec — ida e volta", () => {
     expect(node?.content).toEqual({ kind: "shape", shape: "umlClass" });
     expect(node?.label).toBe("Pedido\n\n+id: string\n\n+calcularTotal()");
   });
+
+  it("preserva um nó de forma umlPackage", () => {
+    const comPacote = Diagram.empty(DiagramId("d1")).addNode(
+      new DiagramNode(NodeId("n1"), rect(0, 0, 140, 80), shapeContent("umlPackage"), "Faturamento"),
+    );
+
+    const voltou = rodarIdaEVolta(comPacote);
+    const node = voltou.node(NodeId("n1"));
+    expect(node?.content).toEqual({ kind: "shape", shape: "umlPackage" });
+    expect(node?.label).toBe("Faturamento");
+  });
 });
 
 describe("codec — retrocompatibilidade", () => {

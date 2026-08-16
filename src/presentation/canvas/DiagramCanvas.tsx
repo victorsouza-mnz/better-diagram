@@ -360,6 +360,7 @@ const TOOL_KEYS: Record<string, Tool | undefined> = {
   d: "diamond",
   t: "text",
   c: "umlClass",
+  p: "umlPackage",
 };
 
 /** Prévia do tamanho enquanto se arrasta para criar. */

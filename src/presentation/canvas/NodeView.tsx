@@ -212,5 +212,21 @@ const Shape = ({ shape, w, h }: { shape: string; w: number; h: number }) => {
     // resto das formas, e as duas nunca deveriam se confundir de longe.
     return <rect width={w} height={h} className="node-shape" style={style} />;
   }
+  if (shape === "umlPackage") {
+    // Aba no canto superior esquerdo + corpo — notação de pacote UML. Dois
+    // retângulos ADJACENTES (não sobrepostos: o corpo começa exatamente onde a aba
+    // termina), cada um com o mesmo preenchimento/contorno de qualquer forma — a
+    // borda inferior da aba e a borda superior do corpo caem na mesma linha, e o
+    // efeito visual é um contorno só, sem costura visível. Sem `rx`, mesma razão da
+    // classe: notação UML é de canto reto.
+    const tabWidth = Math.min(w * 0.45, 64);
+    const tabHeight = Math.min(h * 0.3, 22);
+    return (
+      <g style={style}>
+        <rect width={tabWidth} height={tabHeight} className="node-shape" />
+        <rect y={tabHeight} width={w} height={h - tabHeight} className="node-shape" />
+      </g>
+    );
+  }
   return <rect width={w} height={h} rx={6} className="node-shape" style={style} />;
 };

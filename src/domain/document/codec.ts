@@ -91,7 +91,7 @@ const num = (value: unknown, path: string): number => {
   return value;
 };
 
-const SHAPES: readonly string[] = ["rect", "ellipse", "diamond", "umlClass"];
+const SHAPES: readonly string[] = ["rect", "ellipse", "diamond", "umlClass", "umlPackage"];
 const HORIZONTAL_ALIGNS: readonly string[] = ["left", "center", "right"];
 const VERTICAL_ALIGNS: readonly string[] = ["top", "middle", "bottom"];
 const TEXT_FORMATS: readonly string[] = ["plain", "code"];

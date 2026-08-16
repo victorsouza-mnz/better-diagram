@@ -72,13 +72,14 @@ interface DragState {
  * Estado de SESSÃO: não entra no documento nem no histórico. Ninguém quer desfazer
  * "troquei de ferramenta".
  */
-export type Tool = "select" | "rect" | "ellipse" | "diamond" | "text" | "umlClass";
+export type Tool = "select" | "rect" | "ellipse" | "diamond" | "text" | "umlClass" | "umlPackage";
 
 export const SHAPE_TOOLS: Record<string, ShapeKind> = {
   rect: "rect",
   ellipse: "ellipse",
   diamond: "diamond",
   umlClass: "umlClass",
+  umlPackage: "umlPackage",
 };
 
 /** Arrasto de criação em curso. */

@@ -13,20 +13,15 @@ describe("UmlIconCatalog", () => {
 
   it("não é vazio e tem os conceitos básicos pedidos", () => {
     const slugs = catalog.search("").map((icon) => icon.slug);
-    for (const esperado of [
-      "uml-actor",
-      "uml-interface",
-      "uml-package",
-      "uml-note",
-      "uml-component",
-    ]) {
+    for (const esperado of ["uml-actor", "uml-interface", "uml-note", "uml-component"]) {
       expect(slugs).toContain(esperado);
     }
   });
 
-  it("não tem entrada de classe — é forma, não ícone (ver ShapeKind)", () => {
+  it("não tem entrada de classe nem de pacote — são forma, não ícone (ver ShapeKind)", () => {
     const slugs = catalog.search("").map((icon) => icon.slug);
     expect(slugs).not.toContain("uml-class");
+    expect(slugs).not.toContain("uml-package");
   });
 
   it("substitui currentColor por uma cor fixa — <image> isolado não resolveria currentColor", () => {
@@ -41,7 +36,7 @@ describe("UmlIconCatalog", () => {
   });
 
   it("busca por slug", () => {
-    expect(catalog.search("uml-package").map((icon) => icon.slug)).toContain("uml-package");
+    expect(catalog.search("uml-note").map((icon) => icon.slug)).toContain("uml-note");
   });
 
   it("bySlug encontra e devolve undefined para o que não existe", () => {
@@ -51,6 +46,6 @@ describe("UmlIconCatalog", () => {
 
   it("busca por sinônimo em inglês acha o termo em português", () => {
     expect(catalog.search("actor").map((icon) => icon.slug)).toContain("uml-actor");
-    expect(catalog.search("package").map((icon) => icon.slug)).toContain("uml-package");
+    expect(catalog.search("component").map((icon) => icon.slug)).toContain("uml-component");
   });
 });

@@ -7,7 +7,7 @@
 
 Permitir montar um diagrama arrastando ícones da paleta para o canvas — logos de
 tecnologia (Redis, Postgres, Kafka…), símbolos genéricos de arquitetura (servidor,
-banco de dados, fila…) e notação básica de UML (ator, interface, pacote…) — e
+banco de dados, fila…) e notação básica de UML (ator, interface, componente…) — e
 garantir que o arquivo exportado abra em qualquer máquina com os ícones intactos —
 sem inchar e sem executar código de terceiros.
 
@@ -26,21 +26,31 @@ sem inchar e sem executar código de terceiros.
 
 ## Comportamento esperado
 
-- A paleta lista os ícones disponíveis, filtrável por nome, agrupados em três
-  seções: **Marcas**, **Genéricos** e **UML**. A busca com o campo vazio mostra as
-  três seções separadas, nessa ordem — marcas primeiro, é o diferencial declarado
-  do produto (ver `docs/overview.md`); buscando um termo, a lista fica achatada — a
-  pessoa já reduziu sozinha, e uma seção vazia entre duas com resultado só
-  atrapalha.
+- A paleta lista os ícones disponíveis, filtrável por nome, agrupados em DUAS
+  seções: **UML** e **Ícones**. A busca com o campo vazio mostra as duas seções
+  separadas, nessa ordem; buscando um termo, a lista fica achatada — a pessoa já
+  reduziu sozinha, e uma seção vazia entre duas com resultado só atrapalha.
+  - **Ícones** funde o que antes eram duas seções (Marcas e Genéricos) — a
+    distinção de licenciamento entre as duas continua existindo em
+    `CatalogIcon.category` (ver "Licenciamento" abaixo), só não é mais uma segunda
+    seção visível: pra quem monta um diagrama, "Redis" e "banco de dados" respondem
+    a mesma pergunta ("o que eu arrasto pra representar armazenamento?"), e duas
+    listas pra uma pergunta só era o problema. A ORDEM dentro de "Ícones" continua
+    marca primeiro — é o diferencial declarado do produto (ver `docs/overview.md`).
 - **UML** cobre notação básica que É um ícone de verdade — um símbolo fixo, sem
-  conteúdo próprio: ator, interface (lollipop), pacote (pasta com aba), nota
-  (canto dobrado), componente (conectores laterais). Os símbolos que TÊM conteúdo
-  estruturado ficam de fora deste catálogo, por não serem ícone:
+  conteúdo próprio e sem redimensionar livre: ator, interface (lollipop), nota
+  (canto dobrado), componente (conectores laterais). Os símbolos que precisam de
+  forma de verdade (não um desenho fixo dentro de um `<image>` isolado) ficam de
+  fora deste catálogo:
   - **Caso de uso** é a elipse (ferramenta de forma, `O`) — duplicar como ícone
     arrastável só daria duas formas de chegar no mesmo resultado.
   - **Classe** é a ferramenta de forma `C` (`ShapeKind: "umlClass"`), não um ícone —
     tem três compartimentos de texto (nome, atributos, métodos), e um ícone estático
     não tem onde guardar isso. Ver `editor/formas-e-texto.md`.
+  - **Pacote** é a ferramenta de forma `P` (`ShapeKind: "umlPackage"`), não um ícone
+    — ao contrário da classe, não tem compartimento (o rótulo é texto simples), mas
+    um pacote representa um módulo ou limite lógico que é redimensionado com
+    frequência, e só forma tem resize livre. Ver `editor/formas-e-texto.md`.
 - Arrastar um ícone (de qualquer seção) para o canvas cria **um nó**, num gesto. Não
   existe passo de criar forma e depois associar ícone.
 - O usuário pode subir o próprio SVG, que passa a se comportar como qualquer ícone
@@ -141,9 +151,9 @@ Duas fontes, duas restrições diferentes:
   identificar a tecnologia num diagrama é uso nominativo. O app não altera logo do
   catálogo nem sugere endosso da empresa.
 - **Genéricos** (`GenericIconCatalog`, todo do [lucide](https://lucide.dev), licença
-  ISC) e **UML** (`UmlIconCatalog`, só o ator vem do lucide — interface, pacote,
-  nota e componente são desenhados à mão neste projeto, por não existirem prontos
-  com a notação certa) **não são marca de ninguém** — são símbolos de conceito
+  ISC) e **UML** (`UmlIconCatalog`, só o ator vem do lucide — interface, nota e
+  componente são desenhados à mão neste projeto, por não existirem prontos com a
+  notação certa) **não são marca de ninguém** — são símbolos de conceito
   (servidor, fila, ator…), então a restrição acima não se aplica: podem ser usados,
   alterados e redistribuídos livremente. O que vem do lucide exige manter o aviso
   de copyright dele em algum lugar acessível do projeto (já cumprido por este
@@ -172,7 +182,8 @@ Duas fontes, duas restrições diferentes:
   `UmlIconCatalog` (notação de UML), `CompositeIconCatalog` (junta as três), hasher
   (WebCrypto), sanitizador. Os três catálogos curados carregam a lista de sinônimos
   por ícone (`keywords`) junto da própria entrada curada — não é arquivo à parte.
-- `presentation/`: paleta com as três seções, busca, arrastar-para-o-canvas, upload.
+- `presentation/`: paleta com as duas seções (UML, Ícones), busca,
+  arrastar-para-o-canvas, upload.
 - Performance: um asset por ícone distinto; SVGs de ícone são de poucos KB.
 
 ## Critérios de aceite
@@ -184,8 +195,12 @@ Duas fontes, duas restrições diferentes:
 - [ ] SVG com `<script>` ou handler `on*` é recusado no upload.
 - [ ] `.json` importado com SVG malicioso é sanitizado ou rejeitado — nunca renderizado.
 - [ ] `.json` exportado abre em instalação limpa, sem logo quebrado.
-- [x] A paleta mostra "Marcas", "Genéricos" e "UML" como seções separadas com o
-      campo de busca vazio, e uma lista achatada (sem seções) ao digitar um termo.
+- [x] A paleta mostra "UML" e "Ícones" como seções separadas com o campo de busca
+      vazio, e uma lista achatada (sem seções) ao digitar um termo.
+- [x] Dentro de "Ícones", marca vem antes de genérico — a fusão das duas seções
+      antigas não embaralhou a ordem.
+- [x] "Pacote" não aparece mais na seção UML da paleta — é `P` na barra de
+      ferramentas (`ShapeKind: "umlPackage"`), não ícone (`editor/formas-e-texto.md`).
 - [x] Arrastar um ícone genérico ou de UML cria um nó igual ao de um logo de marca
       — mesmo gesto, mesmo tipo de nó.
 - [x] O SVG de um ícone genérico ou de UML chega ao canvas com `viewBox` intacto e

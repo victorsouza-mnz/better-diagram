@@ -21,14 +21,21 @@ export type NodeContent =
   | { readonly kind: "text"; readonly align: TextAlign; readonly format: TextFormat };
 
 /**
- * `umlClass` é uma forma como as outras — mesmo redimensionar livre, mesmo resto do
- * pipeline (undo, persistência, export) — só o DESENHO é diferente: três
- * compartimentos (nome / atributos / métodos) em vez de uma caixa lisa. Os
- * compartimentos vêm do `label`, quebrado por linha em branco — não é campo
- * estruturado novo, é a apresentação (`NodeLabel.tsx`) interpretando o mesmo texto
- * que qualquer forma já tinha. Ver `docs/specs/editor/formas-e-texto.md`.
+ * `umlClass` e `umlPackage` são formas como as outras — mesmo redimensionar livre,
+ * mesmo resto do pipeline (undo, persistência, export) — só o DESENHO é diferente:
+ *
+ * - `umlClass`: três compartimentos (nome / atributos / métodos) em vez de uma caixa
+ *   lisa. Os compartimentos vêm do `label`, quebrado por linha em branco — não é
+ *   campo estruturado novo, é a apresentação (`NodeLabel.tsx`) interpretando o mesmo
+ *   texto que qualquer forma já tinha.
+ * - `umlPackage`: caixa com uma aba no canto superior esquerdo (notação de pacote
+ *   UML). Ao contrário da classe, não tem convenção de compartimento — o rótulo é
+ *   texto simples, centralizado, mesma regra de `rect`/`ellipse`/`diamond`; só o
+ *   CONTORNO (`NodeView.tsx`) muda.
+ *
+ * Ver `docs/specs/editor/formas-e-texto.md`.
  */
-export type ShapeKind = "rect" | "ellipse" | "diamond" | "umlClass";
+export type ShapeKind = "rect" | "ellipse" | "diamond" | "umlClass" | "umlPackage";
 
 export const iconContent = (assetId: AssetId): NodeContent => ({
   kind: "icon",
