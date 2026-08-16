@@ -1,0 +1,23 @@
+{
+  // Guarda estrutural da regra da dependência (ver AI_GUIDE.md).
+  //
+  // Este tsconfig compila SÓ `src/domain/` e SEM a lib "DOM". Se alguém importar
+  // React, tocar `document`/`window` ou usar `crypto.subtle` dentro do domínio, o
+  // `npm run typecheck` quebra aqui — a regra deixa de depender de disciplina e
+  // passa a ser verificada.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["src/domain"],
+  "exclude": ["src/domain/**/*.test.ts"]
+}

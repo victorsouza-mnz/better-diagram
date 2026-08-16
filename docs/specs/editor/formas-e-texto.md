@@ -1,0 +1,273 @@
+# Spec: Formas, texto e edição de rótulo
+
+**Domínio:** editor  
+**Status:** ready
+
+## Objetivo
+
+Criar caixas e textos pela interface, e escrever o rótulo de qualquer elemento. Hoje
+o modelo já tem as três variantes de nó e o caso de uso de criar forma existe — mas
+não há como alcançá-los, então o app só monta diagrama de logos soltos.
+
+## Não-objetivos
+
+- **Estilo por elemento** (cor, borda, fonte). É a etapa seguinte, e é ela que sobe
+  o `schemaVersion`.
+- **Texto rico**: negrito por trecho, tamanhos diferentes na mesma caixa, links.
+  Rótulo é texto simples com quebras de linha.
+- **Fixar a ferramenta** para criar várias formas em sequência sem reselecionar.
+- Alinhamento do texto configurável — por ora, centralizado na forma e abaixo do
+  ícone.
+
+## Contexto
+
+O `NodeContent` já é uma união de três variantes e `AddShapeNode` já existe, testado.
+O que falta é interação: uma barra de ferramentas, o gesto de criar, e um editor de
+texto no lugar.
+
+O rótulo é **o mesmo campo** nas três variantes: `label` do nó. Num nó de texto ele é
+o conteúdo visível; numa forma, o texto dentro dela; num ícone, a legenda embaixo.
+Um campo só significa um editor só, e nenhuma regra de "qual texto é qual".
+
+## Comportamento esperado
+
+- A barra de ferramentas oferece selecionar, retângulo, elipse, losango, texto e
+  caixa de classe UML.
+- Com uma ferramenta de forma ativa, arrastar no vazio desenha a forma no tamanho
+  arrastado; um clique simples cria no tamanho padrão.
+- A ferramenta volta para "selecionar" assim que o elemento é criado.
+- Duplo clique em qualquer nó abre a edição do rótulo no lugar.
+- O texto quebra em várias linhas, dentro da largura do elemento.
+- Caixa de classe UML desenha três compartimentos (nome / atributos / métodos),
+  separados por linha em branco no rótulo — ver "Caixa de classe UML" abaixo.
+
+## Fluxo do usuário
+
+1. Aperta `R` (ou clica na ferramenta de retângulo).
+2. Arrasta no canvas: aparece a prévia da caixa no tamanho que está sendo definido.
+3. Solta: a caixa é criada, já selecionada, e a ferramenta volta para selecionar.
+4. Dá duplo clique na caixa: o cursor entra no texto.
+5. Digita "API Gateway", `Enter`, "(Kong)" — duas linhas.
+6. Aperta `Esc`: o rótulo é gravado.
+
+Alternativos:
+
+- `Esc` durante o arrasto de criação: nada é criado.
+- Ferramenta de texto: um clique cria o nó **já em edição** — a pessoa não precisa
+  digitar nada para o nó existir; sai da edição sem escrever e ele fica, com um
+  placeholder, do mesmo jeito que uma forma sem rótulo fica com a caixa vazia.
+- Sair da edição com o texto vazio, num nó de **texto**: o nó **continua existindo**
+  — mesma regra de forma e ícone com rótulo vazio. Um contorno tracejado com a dica
+  "Texto" (ver Estados de UI) o mantém achável e selecionável.
+
+## Interação no canvas
+
+- **Criar por arrasto:** `pointerdown` no vazio com ferramenta de forma ativa →
+  prévia seguindo o cursor → `pointerup` cria.
+- **Criar por clique:** deslocamento menor que o mínimo (~5px) cria no tamanho
+  padrão, em vez de criar uma forma de 2px que ninguém consegue pegar depois.
+- **Editar:** duplo clique no nó, ou `Enter` com exatamente um nó selecionado.
+- **Dentro da edição:** `Enter` quebra linha; `Esc` ou clicar fora **gravam**. É a
+  convenção dos editores de canvas — e rótulo de diagrama quebra linha com
+  frequência, então `Enter` gravando seria o atalho errado no gesto mais comum.
+- **Atalhos:** `V` selecionar · `R` retângulo · `O` elipse · `D` losango ·
+  `T` texto · `C` caixa de classe UML · `Esc` volta para selecionar. Apertar a tecla
+  é um toque, não precisa ficar segurada: a ferramenta fica armada até o próximo
+  clique+arrasto criar o elemento, ou até `Esc`.
+- **Iniciar o arrasto de um ícone da paleta cancela a ferramenta de forma ativa**,
+  voltando para "selecionar" — as duas formas de criar nó (desenhar vs. soltar um
+  logo) não ficam armadas ao mesmo tempo. Sem isso, um clique no canvas logo depois
+  de soltar o ícone desenharia uma forma que ninguém pediu.
+- **Undo:** criar é uma entrada ("Adicionar forma" / "Adicionar texto"). Editar
+  rótulo é **uma** entrada ("Renomear"), gravada ao sair da edição — nunca uma por
+  tecla digitada.
+
+## Regras de negócio
+
+- A ferramenta ativa é **estado de sessão**: não entra no documento, não entra no
+  histórico.
+- Elemento criado nasce **selecionado**. É quase sempre o que se vai mexer em
+  seguida.
+- Forma criada por arrasto respeita o retângulo arrastado, em qualquer direção
+  (arrastar para cima e para a esquerda também vale).
+- **Largura e altura são sempre positivas** — o agregado recusa o contrário. O
+  arrasto normaliza antes de criar.
+- Nó de **texto**: largura E altura são da pessoa — nasce com um tamanho padrão e
+  muda pelas alças de redimensionar (spec [`redimensionar.md`](redimensionar.md)),
+  igual a uma forma. A única trava é um PISO na altura: nunca fica menor que o
+  necessário para as linhas que o rótulo forma na largura atual — recalculado tanto
+  ao editar o rótulo quanto, ao vivo, durante o próprio arrasto de uma alça. Esticar
+  além do piso é livre; é esse espaço sobrando que o alinhamento vertical (spec
+  [`painel-propriedades.md`](../ui/painel-propriedades.md)) usa para decidir onde o
+  texto senta. Nas outras variantes (forma, ícone), a caixa já existe e o texto se
+  acomoda dentro dela — não é ela que muda de tamanho.
+- Editar rótulo com vários nós selecionados não faz nada — não há qual editar.
+
+## Estados de UI
+
+- Ferramenta ativa destacada na barra; cursor vira cruz no canvas.
+- Criando: prévia tracejada do tamanho que está sendo arrastado.
+- Editando: o texto do nó some e dá lugar ao editor, alinhado exatamente sobre ele,
+  para não haver "pulo" ao entrar e sair.
+- Vazio: forma sem rótulo é uma caixa vazia — legítimo. Nó de texto sem rótulo
+  mostra um contorno tracejado com a dica "Texto", centralizada — sem isso ele seria
+  uma área em branco indistinguível do canvas vazio.
+- Erro: não se aplica.
+
+## Quebra de linha
+
+`<text>` do SVG **não quebra linha sozinho**: a quebra é calculada e vira `<tspan>`.
+`foreignObject` resolveria em uma linha de código e está descartado — ele atrapalha
+no export para SVG, que é uma etapa da fila.
+
+O algoritmo de quebra é uma **função pura** que recebe a função de medir como
+parâmetro:
+
+```ts
+wrapText(text: string, maxWidth: number, measure: (s: string) => number): string[]
+```
+
+Assim a regra de quebra é testável em Node com um medidor falso (ex.: 7px por
+caractere), e a medição real — que depende de fonte e de canvas — fica na
+apresentação. Testar quebra de linha sem browser é o que torna esse código confiável;
+com browser, ninguém testa.
+
+Regras: quebra por espaço; palavra maior que a largura é cortada no meio (senão ela
+vaza para fora da caixa); quebras explícitas do usuário (`Enter`) são respeitadas.
+
+## Caixa de classe UML
+
+Notação padrão de classe em diagrama de classes UML: um retângulo com três
+compartimentos empilhados — nome, atributos, operações — separados por uma linha.
+Não é um ícone (a paleta não tem "Classe" — ver `assets/catalogo-e-logos.md`): é uma
+`ShapeKind` a mais, `"umlClass"`, irmã de `rect`/`ellipse`/`diamond`. Ganha de graça
+tudo que já vale para forma — redimensionar livre, arrastar, conectar, undo,
+persistência — só o DESENHO é diferente.
+
+**Os três compartimentos vêm do `label`, não de um campo estruturado novo.** Uma
+linha em branco separa nome de atributos, e outra separa atributos de operações —
+o mesmo texto simples que qualquer forma já guardava, só que este desenho o
+interpreta em três pedaços:
+
+```
+NomeDaClasse
+
++atributo: tipo
+
++metodo()
+```
+
+Mais de duas linhas em branco não cria um quarto compartimento — tudo depois da
+segunda quebra vira parte das operações. Menos de duas quebras: os compartimentos
+que faltam ficam vazios (uma caixa só com o nome, por exemplo, é legítima).
+
+- **Nasce com um exemplo preenchido**, não em branco: uma caixa vazia não tem como
+  a pessoa adivinhar que uma linha em branco separa os campos. O exemplo mostra a
+  convenção; a pessoa edita por cima.
+- **Nome centralizado e em negrito**; atributos e operações alinhados à
+  ESQUERDA — é como toda notação de classe UML desenha uma lista de membros, nunca
+  centralizada.
+- **A altura de cada compartimento vem só do que ele contém** — não é esticada para
+  preencher a caixa nem encolhida para caber nela. Uma caixa redimensionada maior
+  que o conteúdo sobra em branco embaixo do último compartimento; menor, o texto
+  vaza por baixo — mesma regra de "sem corte automático" que já vale pra forma
+  comum com texto demais.
+- **Cantos retos, não arredondados** — única forma nesta lista que não arredonda; é
+  o que distingue a caixa de classe de um retângulo comum ao olhar de longe.
+
+## O editor de rótulo
+
+Um elemento HTML posicionado **sobre** o canvas, não um `foreignObject`:
+
+- Fica no espaço de tela, alinhado ao nó pela mesma transformação de viewport.
+- É um campo de texto de verdade: foco, seleção, IME, atalhos do sistema.
+- Enquanto ele está aberto, os atalhos do editor não valem (o guard de digitação já
+  existe, do undo/redo).
+
+## Modelagem de domínio
+
+Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
+
+- **Caso de uso novo:** `AddTextNode`.
+- **`ResizeNode`** passa a ser usado tanto pela alça (largura, gesto do usuário)
+  quanto pelo fim da edição de rótulo (altura, derivada do texto) — ver
+  [`redimensionar.md`](redimensionar.md) para a regra completa da alça em nó de
+  texto.
+- **`ShapeKind`** ganha `"umlClass"` — mesmo tipo, valor a mais, não um `kind` de
+  `NodeContent` novo (`NodeContent.ts`).
+- **`AddShapeNode.execute`** ganha um `label` opcional (default `""`, o de sempre) —
+  é o que permite a caixa de classe nascer com o exemplo preenchido sem virar um
+  segundo caso de uso ou uma segunda entrada de undo.
+- Nenhum invariante novo.
+
+## Impacto no documento
+
+- Campos: nenhum novo. `content.kind === "shape" | "text"` e `label` já existem no
+  v1, e o codec já os lê e escreve. `content.shape` ganha `"umlClass"` como valor
+  válido a mais — mesmo campo, mesmo tipo (`string`, validado por allowlist no
+  codec), só mais uma entrada aceita.
+- `schemaVersion`: **não sobe** — mesma lógica de qualquer valor novo numa allowlist
+  já existente (`SHAPES`, em `document/codec.ts`): documento salvo antes de
+  `"umlClass"` existir não é afetado; documento novo com `"umlClass"` só não abriria
+  numa versão bem mais antiga do app, que já recusaria com erro claro
+  ("shape desconhecido"), nunca com corrupção silenciosa.
+- Quebras de linha vão no próprio `label`, como `\n` — não viram campo novo. Os
+  compartimentos da caixa de classe também: são a MESMA string, com linhas em
+  branco como separador — não um `label` estruturado.
+
+## Impacto por camada
+
+- `domain/`: `NodeContent.ts` (`ShapeKind` ganha `"umlClass"`).
+- `application/`: `AddTextNode`; `AddShapeNode` ganha o `label` opcional;
+  `DEFAULT_UML_CLASS_SIZE` e `UML_CLASS_TEMPLATE` em `editing.ts`.
+- `infrastructure/`: nada.
+- `presentation/`: barra de ferramentas, ferramenta ativa, gesto de criação, editor
+  de rótulo sobreposto, `wrapText` + o medidor, render em `<tspan>`. Caixa de
+  classe: `NodeView.tsx` (canto reto), `NodeLabel.tsx` (`UmlClassBody` — separa o
+  `label` em três, desenha os divisores e cada compartimento).
+- Performance: a quebra de linha é recalculada por render de nó. Se pesar, memoiza
+  por (texto, largura) — não antes.
+
+## Restrições de implementação (guardrails)
+
+- **Nada de `foreignObject`.**
+- A quebra de linha não pode depender do DOM: função pura + medidor injetado.
+- O editor grava **uma** entrada de histórico ao sair, não uma por tecla.
+- Criar passa pelo caso de uso e pelo ponto único de commit.
+- Arrasto de criação é estado de sessão até soltar — como todo arrasto aqui.
+
+## Critérios de aceite
+
+- [ ] `R` + arrasto cria um retângulo do tamanho arrastado; um clique cria no
+      tamanho padrão.
+- [ ] Arrastar para cima e para a esquerda cria a forma corretamente.
+- [ ] Elipse e losango funcionam pelos mesmos gestos.
+- [ ] A ferramenta volta para "selecionar" depois de criar.
+- [ ] `Esc` durante o arrasto de criação não cria nada.
+- [ ] `T` + clique cria um nó de texto já em edição.
+- [ ] Sair da edição com texto vazio **não remove** o nó de texto — mostra o
+      contorno tracejado com a dica "Texto", igual forma e ícone com rótulo vazio.
+- [ ] Duplo clique numa forma, num texto e num ícone abre a edição nos três.
+- [ ] `Enter` quebra linha; `Esc` grava.
+- [ ] Um rótulo longo quebra em várias linhas dentro da largura do elemento —
+      inclusive no nó de texto, pela largura da caixa, não só por `Enter`.
+- [ ] Arrastar a alça leste de um nó de texto muda a largura e, ao vivo (sem soltar
+      o mouse), reflui o número de linhas e a altura — nunca "corrige" só ao soltar.
+- [ ] Editar um rótulo inteiro é **uma** entrada de undo.
+- [ ] Digitar no editor não dispara os atalhos do canvas (`Delete`, `Ctrl+Z`).
+- [ ] O texto sobrevive à recarga e ao export/import.
+- [x] `C` + clique cria uma caixa de classe UML com o exemplo preenchido, três
+      compartimentos visíveis, cantos retos.
+- [x] Editar o rótulo com "Nome\n\nAtributo\n\nMétodo" desenha nome centralizado em
+      negrito, atributo e método alinhados à esquerda, dois divisores.
+- [x] Redimensionar a caixa de classe é livre (largura e altura), como uma forma —
+      sem piso de conteúdo (esse piso é só do nó de texto).
+- [x] A caixa de classe sobrevive à recarga, com o `shape: "umlClass"` e o texto dos
+      três compartimentos intactos.
+
+## Questões em aberto
+
+- [ ] Fixar a ferramenta (criar várias em sequência) — `Alt`+clique na ferramenta,
+      ou um cadeado na barra?
+- [ ] Alinhamento vertical do texto dentro da forma quando ele é menor que a caixa:
+      centralizado sempre, ou topo?
