@@ -48,4 +48,9 @@ describe("UmlIconCatalog", () => {
     expect(catalog.bySlug("uml-actor")?.name).toBe("Ator");
     expect(catalog.bySlug("nao-existe")).toBeUndefined();
   });
+
+  it("busca por sinônimo em inglês acha o termo em português", () => {
+    expect(catalog.search("actor").map((icon) => icon.slug)).toContain("uml-actor");
+    expect(catalog.search("package").map((icon) => icon.slug)).toContain("uml-package");
+  });
 });

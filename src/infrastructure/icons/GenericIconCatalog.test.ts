@@ -38,4 +38,14 @@ describe("GenericIconCatalog", () => {
     expect(catalog.bySlug("server")?.name).toBe("Servidor");
     expect(catalog.bySlug("nao-existe")).toBeUndefined();
   });
+
+  it("busca por palavra-chave de tecnologia acha o conceito genérico", () => {
+    expect(catalog.search("redis").map((icon) => icon.slug)).toContain("layers");
+    expect(catalog.search("kafka").map((icon) => icon.slug)).toContain("inbox");
+    expect(catalog.search("lambda").map((icon) => icon.slug)).toContain("zap");
+  });
+
+  it("termo sem nenhum resultado não quebra — lista vazia", () => {
+    expect(catalog.search("xyzabc123")).toEqual([]);
+  });
 });

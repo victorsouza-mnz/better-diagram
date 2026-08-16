@@ -41,24 +41,42 @@ interface RawIcon {
   readonly slug: string;
   readonly name: string;
   readonly svg: string;
+  /**
+   * Termos que uma pessoa digitaria pensando na TECNOLOGIA, não no conceito
+   * genérico — "redis" pra achar este ícone de Cache, "kafka" pra achar Fila. Mesma
+   * regra de substring que já vale pra nome e slug (ver `SimpleIconsCatalog` para a
+   * contraparte: lá é o logo que ganha sinônimos de conceito; aqui é o conceito que
+   * ganha sinônimos de tecnologia — as duas direções do mesmo problema).
+   */
+  readonly keywords?: readonly string[];
 }
 
 /** Ícones expostos na paleta, na ordem em que aparecem. */
 const CURATED: readonly RawIcon[] = [
-  { slug: "server", name: "Servidor", svg: server },
-  { slug: "database", name: "Banco de dados", svg: database },
-  { slug: "hard-drive", name: "Armazenamento", svg: hardDrive },
-  { slug: "layers", name: "Cache", svg: layers },
-  { slug: "inbox", name: "Fila / Message Broker", svg: inbox },
-  { slug: "split", name: "Load Balancer", svg: split },
-  { slug: "route", name: "API Gateway", svg: route },
-  { slug: "shield", name: "Firewall", svg: shield },
-  { slug: "globe", name: "CDN", svg: globe },
-  { slug: "router", name: "Rede / Roteador", svg: router },
-  { slug: "monitor", name: "Cliente", svg: monitor },
-  { slug: "user", name: "Usuário", svg: user },
-  { slug: "zap", name: "Função (serverless)", svg: zap },
-  { slug: "container", name: "Container", svg: container },
+  { slug: "server", name: "Servidor", svg: server, keywords: ["backend", "vm", "máquina virtual"] },
+  { slug: "database", name: "Banco de dados", svg: database, keywords: ["sql", "db"] },
+  { slug: "hard-drive", name: "Armazenamento", svg: hardDrive, keywords: ["storage", "disco", "s3", "volume"] },
+  { slug: "layers", name: "Cache", svg: layers, keywords: ["redis", "memcached"] },
+  {
+    slug: "inbox",
+    name: "Fila / Message Broker",
+    svg: inbox,
+    keywords: ["fila", "queue", "kafka", "rabbitmq", "sqs", "mensageria"],
+  },
+  { slug: "split", name: "Load Balancer", svg: split, keywords: ["lb", "balanceador de carga"] },
+  { slug: "route", name: "API Gateway", svg: route, keywords: ["gateway", "proxy"] },
+  { slug: "shield", name: "Firewall", svg: shield, keywords: ["segurança", "waf"] },
+  { slug: "globe", name: "CDN", svg: globe, keywords: ["cloudflare", "edge"] },
+  { slug: "router", name: "Rede / Roteador", svg: router, keywords: ["network", "vpc"] },
+  { slug: "monitor", name: "Cliente", svg: monitor, keywords: ["frontend", "browser", "navegador"] },
+  { slug: "user", name: "Usuário", svg: user, keywords: ["ator", "actor", "pessoa"] },
+  {
+    slug: "zap",
+    name: "Função (serverless)",
+    svg: zap,
+    keywords: ["lambda", "faas", "function", "serverless"],
+  },
+  { slug: "container", name: "Container", svg: container, keywords: ["docker", "pod"] },
 ];
 
 /**
@@ -84,12 +102,18 @@ export class GenericIconCatalog implements IconCatalog {
 
   private readonly bySlugIndex = new Map(this.icons.map((icon) => [icon.slug, icon]));
 
+  // Mesmo raciocínio de `SimpleIconsCatalog`: palavras-chave não entram em
+  // `CatalogIcon`, são detalhe de curadoria só da busca.
+  private readonly keywordsBySlug = new Map(CURATED.map((icon) => [icon.slug, icon.keywords ?? []]));
+
   search(query: string): readonly CatalogIcon[] {
     const term = query.trim().toLowerCase();
     if (term === "") return this.icons;
-    return this.icons.filter(
-      (icon) => icon.name.toLowerCase().includes(term) || icon.slug.includes(term),
-    );
+    return this.icons.filter((icon) => {
+      if (icon.name.toLowerCase().includes(term) || icon.slug.includes(term)) return true;
+      const keywords = this.keywordsBySlug.get(icon.slug) ?? [];
+      return keywords.some((keyword) => keyword.toLowerCase().includes(term));
+    });
   }
 
   bySlug(slug: string): CatalogIcon | undefined {

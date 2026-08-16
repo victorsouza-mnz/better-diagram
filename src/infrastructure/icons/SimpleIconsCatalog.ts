@@ -59,32 +59,50 @@ interface SimpleIcon {
   readonly hex: string;
 }
 
+/**
+ * Um logo e os termos que uma pessoa digitaria PENSANDO no conceito, não no nome da
+ * marca — "cache" para achar o Redis, "fila" para achar o Kafka. Não é busca
+ * semântica (não há embedding nem similaridade): é a MESMA regra de substring que já
+ * vale para nome e slug, só que contra uma lista curada por ícone (ver
+ * `docs/specs/assets/catalogo-e-logos.md`).
+ */
+interface CuratedBrand {
+  readonly icon: SimpleIcon;
+  readonly keywords: readonly string[];
+}
+
 /** Ícones expostos na paleta, na ordem em que aparecem. */
-const CURATED: readonly SimpleIcon[] = [
-  siPostgresql,
-  siMysql,
-  siSqlite,
-  siRedis,
-  siMongodb,
-  siElasticsearch,
-  siSupabase,
-  siApachekafka,
-  siRabbitmq,
-  siDocker,
-  siKubernetes,
-  siTerraform,
-  siNginx,
-  siCloudflare,
-  siGooglecloud,
-  siGithubactions,
-  siPrometheus,
-  siGrafana,
-  siNodedotjs,
-  siPython,
-  siGo,
-  siTypescript,
-  siReact,
-  siGraphql,
+const CURATED: readonly CuratedBrand[] = [
+  { icon: siPostgresql, keywords: ["postgres", "sql", "banco de dados relacional"] },
+  { icon: siMysql, keywords: ["sql", "banco de dados relacional"] },
+  { icon: siSqlite, keywords: ["sql", "banco de dados embarcado"] },
+  { icon: siRedis, keywords: ["cache", "em memória", "key-value", "sessão", "pub/sub"] },
+  { icon: siMongodb, keywords: ["nosql", "documento", "banco de dados não relacional"] },
+  { icon: siElasticsearch, keywords: ["busca", "search", "full-text", "log", "elk"] },
+  { icon: siSupabase, keywords: ["backend as a service", "baas", "postgres gerenciado"] },
+  {
+    icon: siApachekafka,
+    keywords: ["fila", "mensageria", "streaming", "eventos", "message broker", "pub/sub"],
+  },
+  { icon: siRabbitmq, keywords: ["fila", "mensageria", "message broker", "amqp"] },
+  { icon: siDocker, keywords: ["container", "imagem", "containerização"] },
+  { icon: siKubernetes, keywords: ["k8s", "orquestração de containers", "orchestration"] },
+  { icon: siTerraform, keywords: ["iac", "infraestrutura como código", "provisionamento"] },
+  { icon: siNginx, keywords: ["proxy reverso", "load balancer", "servidor web", "web server"] },
+  { icon: siCloudflare, keywords: ["cdn", "dns", "proxy", "waf", "edge"] },
+  { icon: siGooglecloud, keywords: ["gcp", "nuvem", "cloud"] },
+  { icon: siGithubactions, keywords: ["ci/cd", "pipeline", "automação", "workflow"] },
+  { icon: siPrometheus, keywords: ["monitoramento", "métricas", "observabilidade", "alerta"] },
+  {
+    icon: siGrafana,
+    keywords: ["dashboard", "monitoramento", "observabilidade", "métricas", "visualização"],
+  },
+  { icon: siNodedotjs, keywords: ["javascript", "runtime", "backend"] },
+  { icon: siPython, keywords: ["linguagem", "backend", "script", "data science"] },
+  { icon: siGo, keywords: ["golang", "linguagem", "backend"] },
+  { icon: siTypescript, keywords: ["javascript", "linguagem", "tipado"] },
+  { icon: siReact, keywords: ["frontend", "javascript", "ui", "spa", "componente"] },
+  { icon: siGraphql, keywords: ["api", "query language"] },
 ];
 
 /**
@@ -100,7 +118,7 @@ const toSvg = (icon: SimpleIcon): string =>
   `<path d="${icon.path}"/></svg>`;
 
 export class SimpleIconsCatalog implements IconCatalog {
-  private readonly icons: readonly CatalogIcon[] = CURATED.map((icon) => ({
+  private readonly icons: readonly CatalogIcon[] = CURATED.map(({ icon }) => ({
     slug: icon.slug,
     name: icon.title,
     svg: toSvg(icon),
@@ -109,12 +127,20 @@ export class SimpleIconsCatalog implements IconCatalog {
 
   private readonly bySlugIndex = new Map(this.icons.map((icon) => [icon.slug, icon]));
 
+  // Palavras-chave não entram em `CatalogIcon` — são detalhe de curadoria da BUSCA
+  // deste catálogo, não algo que a paleta ou qualquer outra camada precisa exibir.
+  private readonly keywordsBySlug = new Map(
+    CURATED.map(({ icon, keywords }) => [icon.slug, keywords]),
+  );
+
   search(query: string): readonly CatalogIcon[] {
     const term = query.trim().toLowerCase();
     if (term === "") return this.icons;
-    return this.icons.filter(
-      (icon) => icon.name.toLowerCase().includes(term) || icon.slug.includes(term),
-    );
+    return this.icons.filter((icon) => {
+      if (icon.name.toLowerCase().includes(term) || icon.slug.includes(term)) return true;
+      const keywords = this.keywordsBySlug.get(icon.slug) ?? [];
+      return keywords.some((keyword) => keyword.toLowerCase().includes(term));
+    });
   }
 
   bySlug(slug: string): CatalogIcon | undefined {

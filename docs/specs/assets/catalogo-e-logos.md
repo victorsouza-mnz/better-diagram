@@ -13,7 +13,14 @@ sem inchar e sem executar código de terceiros.
 
 ## Não-objetivos
 
-- Busca semântica ou por categoria no catálogo — no v1 a busca é por nome.
+- **Busca semântica de verdade** — sem embedding, sem similaridade, sem ranqueamento
+  por relevância. O que existe é comparação de substring contra nome, slug e uma
+  lista de sinônimos CURADA À MÃO por ícone (ver "Busca por sinônimo" abaixo) — é
+  determinístico e auditável (dá pra ler a lista inteira num arquivo), não um modelo
+  que "acha parecido".
+- **Busca por categoria** (filtrar só "Marcas", ou só "Genéricos") — a busca é sempre
+  contra o catálogo inteiro; agrupar por categoria é só a apresentação com o campo
+  vazio (ver "Comportamento esperado").
 - Edição do SVG dentro do app (recolorir, remover partes).
 - Catálogo remoto / baixado sob demanda. O catálogo é embutido no build.
 
@@ -40,6 +47,21 @@ sem inchar e sem executar código de terceiros.
   do catálogo.
 - O `.json` exportado abre noutra máquina sem ícone quebrado, mesmo se aquela versão
   do app tiver um catálogo diferente.
+- **Busca por sinônimo**: cada ícone curado carrega, além do nome, uma pequena lista
+  de termos que uma pessoa digitaria pensando no CONCEITO em vez do nome exato — e
+  qualquer um deles conta como resultado, igual a bater no nome. As duas direções do
+  mesmo problema:
+  - **Um logo ganha sinônimos de conceito**: buscar "cache" mostra o Redis (ele não
+    se chama "cache" em lugar nenhum do nome ou do slug); buscar "fila" mostra
+    Kafka e RabbitMQ; buscar "nosql" mostra o MongoDB.
+  - **Um ícone genérico ganha sinônimos de tecnologia**: buscar "redis" mostra,
+    além do logo, o ícone genérico "Cache"; buscar "kafka" mostra, além do logo, o
+    genérico "Fila / Message Broker" — quem não lembra o nome da marca ainda acha
+    alguma coisa pra representar o conceito.
+  - A lista é curada por quem mantém o catálogo, não gerada — cada entrada nova
+    (`docs/specs/assets/catalogo-e-logos.md` não lista os termos; eles vivem junto
+    do ícone em `infrastructure/icons/*.ts`) é uma decisão consciente do que uma
+    pessoa razoavelmente digitaria.
 
 ## Fluxo do usuário
 
@@ -68,6 +90,12 @@ sem inchar e sem executar código de terceiros.
   `GenericIconCatalog` para símbolos, `UmlIconCatalog` para notação) numa
   `IconCatalog` só — a paleta e o caso de uso continuam vendo uma única fonte, sem
   saber quantas existem por trás.
+- **Palavra-chave de busca não é campo de `CatalogIcon`.** Cada catálogo guarda a
+  lista de sinônimos por `slug` internamente (um `Map` privado, ao lado da lista
+  curada) e só a consulta DENTRO do próprio `search()` — a paleta, o caso de uso e o
+  documento nunca veem essa lista, porque nenhum deles precisa saber POR QUE um ícone
+  apareceu num resultado, só que apareceu. Mesmo raciocínio de `category`: metadado
+  que serve a UMA camada, não sobe pro `Asset` nem pro documento.
 
 Hash e sanitização são **ports**, não código de domínio: um depende de WebCrypto, o
 outro de parsing de DOM. O caso de uso os chama na borda e entrega ao agregado um
@@ -142,7 +170,8 @@ Duas fontes, duas restrições diferentes:
 - `application/`: `AddIconNode`, `ImportCustomIcon`.
 - `infrastructure/`: `SimpleIconsCatalog` (marcas), `GenericIconCatalog` (símbolos),
   `UmlIconCatalog` (notação de UML), `CompositeIconCatalog` (junta as três), hasher
-  (WebCrypto), sanitizador.
+  (WebCrypto), sanitizador. Os três catálogos curados carregam a lista de sinônimos
+  por ícone (`keywords`) junto da própria entrada curada — não é arquivo à parte.
 - `presentation/`: paleta com as três seções, busca, arrastar-para-o-canvas, upload.
 - Performance: um asset por ícone distinto; SVGs de ícone são de poucos KB.
 
@@ -161,6 +190,12 @@ Duas fontes, duas restrições diferentes:
       — mesmo gesto, mesmo tipo de nó.
 - [x] O SVG de um ícone genérico ou de UML chega ao canvas com `viewBox` intacto e
       sem `currentColor` (que resolveria para preto dentro do `<image>` isolado).
+- [x] Buscar "cache" mostra o Redis, mesmo sem "cache" aparecer no nome ou no slug
+      dele.
+- [x] Buscar o nome de uma marca (ex.: "redis", "kafka") também mostra o ícone
+      genérico equivalente, quando existe um ("Cache", "Fila / Message Broker").
+- [x] Busca por palavra-chave é insensível a maiúsculas/minúsculas, igual à busca
+      por nome.
 
 ## Questões em aberto
 

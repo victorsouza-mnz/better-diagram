@@ -40,6 +40,8 @@ interface RawIcon {
   readonly slug: string;
   readonly name: string;
   readonly svg: string;
+  /** Sinônimo em inglês ou termo de notação — mesma regra de `GenericIconCatalog`. */
+  readonly keywords?: readonly string[];
 }
 
 const svg = (inner: string) =>
@@ -65,11 +67,11 @@ const INTERFACE_SVG = svg('<circle cx="12" cy="9" r="5"/><path d="M12 14v7"/>');
 
 /** Ícones expostos na paleta, na ordem em que aparecem. */
 const CURATED: readonly RawIcon[] = [
-  { slug: "uml-actor", name: "Ator", svg: userRound },
-  { slug: "uml-interface", name: "Interface", svg: INTERFACE_SVG },
-  { slug: "uml-package", name: "Pacote", svg: PACKAGE_SVG },
-  { slug: "uml-note", name: "Nota", svg: NOTE_SVG },
-  { slug: "uml-component", name: "Componente", svg: COMPONENT_SVG },
+  { slug: "uml-actor", name: "Ator", svg: userRound, keywords: ["actor", "usuário", "papel"] },
+  { slug: "uml-interface", name: "Interface", svg: INTERFACE_SVG, keywords: ["lollipop", "contrato"] },
+  { slug: "uml-package", name: "Pacote", svg: PACKAGE_SVG, keywords: ["package", "módulo", "namespace"] },
+  { slug: "uml-note", name: "Nota", svg: NOTE_SVG, keywords: ["comment", "comentário", "anotação"] },
+  { slug: "uml-component", name: "Componente", svg: COMPONENT_SVG, keywords: ["component", "módulo"] },
 ];
 
 /**
@@ -93,12 +95,16 @@ export class UmlIconCatalog implements IconCatalog {
 
   private readonly bySlugIndex = new Map(this.icons.map((icon) => [icon.slug, icon]));
 
+  private readonly keywordsBySlug = new Map(CURATED.map((icon) => [icon.slug, icon.keywords ?? []]));
+
   search(query: string): readonly CatalogIcon[] {
     const term = query.trim().toLowerCase();
     if (term === "") return this.icons;
-    return this.icons.filter(
-      (icon) => icon.name.toLowerCase().includes(term) || icon.slug.includes(term),
-    );
+    return this.icons.filter((icon) => {
+      if (icon.name.toLowerCase().includes(term) || icon.slug.includes(term)) return true;
+      const keywords = this.keywordsBySlug.get(icon.slug) ?? [];
+      return keywords.some((keyword) => keyword.toLowerCase().includes(term));
+    });
   }
 
   bySlug(slug: string): CatalogIcon | undefined {
