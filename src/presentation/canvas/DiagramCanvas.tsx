@@ -61,6 +61,17 @@ export const DiagramCanvas = ({ session }: { session: EditorSession }) => {
   const [altHover, setAltHover] = useState<{ nodeId: NodeId; at: Point } | null>(null);
 
   /**
+   * Arrasto de pan com o botão do meio ou o direito — ponto de tela do
+   * `pointermove` anterior, ou `null` fora do gesto.
+   *
+   * Ref, não estado: teria que setState a cada `pointermove` do arrasto, e o pan é
+   * cosmético (não entra no histórico) — recriar o componente a 60fps só pra mover
+   * a câmera é o mesmo desperdício que já motivou `canvas--alt` a ser uma classe
+   * DOM direta, não estado React (ver o comentário lá embaixo).
+   */
+  const panningRef = useRef<{ x: number; y: number } | null>(null);
+
+  /**
    * Tamanho do canvas em pixels de TELA — o minimapa e os botões de zoom precisam
    * dele pra saber o que "o centro da tela" ou "o que está visível agora" significa
    * (mesma conta de `toWorld`, só que dos dois cantos, não de um ponto de evento).
@@ -123,6 +134,18 @@ export const DiagramCanvas = ({ session }: { session: EditorSession }) => {
     // React ter renderizado o último movimento. Cada ação consulta a própria ref e
     // não faz nada quando não há gesto — o gate mora num lugar só.
     const onMove = (event: PointerEvent) => {
+      // Pan é exclusivo: só começa via `onPointerDownCapture` (botão do meio ou
+      // direito), que intercepta o evento ANTES de qualquer outro gesto nascer
+      // (nó, aresta, marquee, criação) — ver o comentário lá. Nenhum `update*`
+      // abaixo teria o que fazer nesse instante; sair cedo só evita o trabalho.
+      if (panningRef.current) {
+        const dx = event.clientX - panningRef.current.x;
+        const dy = event.clientY - panningRef.current.y;
+        panningRef.current = { x: event.clientX, y: event.clientY };
+        actions.panBy(dx, dy);
+        return;
+      }
+
       const at = toWorld(event);
       actions.updateDrag(at);
       actions.updateConnect(at);
@@ -149,6 +172,12 @@ export const DiagramCanvas = ({ session }: { session: EditorSession }) => {
       }
     };
     const onUp = (event: PointerEvent) => {
+      if (panningRef.current) {
+        panningRef.current = null;
+        svgRef.current?.classList.remove("canvas--panning");
+        return;
+      }
+
       const at = toWorld(event);
       actions.endDrag(at);
       actions.endConnect(at);
@@ -222,15 +251,43 @@ export const DiagramCanvas = ({ session }: { session: EditorSession }) => {
     };
   });
 
+  /**
+   * Rolar o scroll SEMPRE dá zoom — não só com `Ctrl`/`Cmd` como antes. Pan por
+   * scroll saiu: quem move a câmera sem zoom agora é o arrasto com o botão do meio
+   * ou o direito (`beginPan`, abaixo) — dois gestos, dois dedos/botões diferentes,
+   * sem sobrepor. De quebra, gesto de pinça no trackpad (que o browser reporta como
+   * `wheel` com `ctrlKey: true`) já cai no mesmo caminho, sem precisar de um `if`.
+   */
   const onWheel = (event: React.WheelEvent) => {
+    // Só o eixo VERTICAL zoom — sem isto, um swipe horizontal de trackpad
+    // (`deltaX` puro, `deltaY === 0`) cairia no `else` do zoom por não ser "< 0",
+    // e uma rolagem de lado nenhuma dar zoom OUT do nada. Pan por scroll já não
+    // existe mais (é o arrasto de `beginPan` agora); `deltaX` sem `deltaY` não tem
+    // mais o que fazer aqui.
+    if (event.deltaY === 0) return;
+
     const box = svgRef.current?.getBoundingClientRect();
     const at = { x: event.clientX - (box?.left ?? 0), y: event.clientY - (box?.top ?? 0) };
+    actions.zoom(at, event.deltaY < 0 ? 1.1 : 1 / 1.1);
+  };
 
-    if (event.ctrlKey || event.metaKey) {
-      actions.zoom(at, event.deltaY < 0 ? 1.1 : 1 / 1.1);
-    } else {
-      actions.panBy(-event.deltaX, -event.deltaY);
-    }
+  /**
+   * Começa o pan com o botão do meio (`1`) ou o direito (`2`).
+   *
+   * `onPointerDownCapture`, e não `onPointerDown`: a fase de CAPTURA roda de cima
+   * pra baixo, ANTES da de borbulhamento — intercepta o evento antes que ele chegue
+   * a um nó/aresta e o `stopPropagation()` de lá o impeça de subir. Sem isto,
+   * clicar o botão direito EM CIMA de um nó começaria a arrastar o nó (o handler
+   * dele não filtra por botão), não a câmera. O `stopPropagation()` aqui é o
+   * espelho: impede o evento de descer mais e acionar qualquer gesto de botão
+   * esquerdo por baixo — pan é o ÚNICO gesto possível depois disto.
+   */
+  const beginPan = (event: React.PointerEvent) => {
+    if (event.button !== 1 && event.button !== 2) return;
+    event.preventDefault(); // sem isto, o botão do meio dispara o autoscroll do browser
+    event.stopPropagation();
+    panningRef.current = { x: event.clientX, y: event.clientY };
+    svgRef.current?.classList.add("canvas--panning");
   };
 
   /**
@@ -275,8 +332,18 @@ export const DiagramCanvas = ({ session }: { session: EditorSession }) => {
           .filter(Boolean)
           .join(" ")}
         onWheel={onWheel}
+        onPointerDownCapture={beginPan}
+        // Sem isto, soltar o botão direito depois de arrastar (ou mesmo um clique
+        // direito parado) abriria o menu de contexto do sistema por cima do canvas.
+        onContextMenu={(event) => event.preventDefault()}
         onPointerDown={(event) => {
           if (event.target !== svgRef.current) return; // nó ou aresta: handler deles
+          // Só o botão ESQUERDO cria/seleciona aqui. Meio e direito já viraram pan
+          // em `beginPan` (capturado antes deste handler rodar) — o filtro por
+          // `button` é redundância de propósito: os dois handlers estão no MESMO
+          // elemento (o `<svg>`), e depender só da ordem capture-antes-de-bubble
+          // pro caso "clicou direto no fundo vazio" é frágil demais pra confiar.
+          if (event.button !== 0) return;
 
           // No vazio: com ferramenta de forma ativa, começa a criar; com a de
           // seleção, começa o retângulo de seleção — a decisão entre "foi clique" e

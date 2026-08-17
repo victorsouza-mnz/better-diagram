@@ -6,10 +6,11 @@
 ## Objetivo
 
 A interação base do editor: navegar pelo plano, selecionar nós e movê-los. É o que
-todo o resto assume pronto. Navegar inclui três caminhos: `Ctrl`/`Cmd`+scroll (zoom
-no cursor), o minimapa (canto inferior esquerdo, arrastando o retângulo da câmera)
-e os botões de zoom (centro inferior) — os três mexem no mesmo `viewport`, nenhum
-sabe da existência dos outros.
+todo o resto assume pronto. Navegar inclui quatro caminhos: rolar o scroll (zoom no
+cursor), arrastar com o botão do meio ou o direito (pan), o minimapa (canto
+inferior esquerdo, arrastando o retângulo da câmera) e os botões de zoom (centro
+inferior) — os quatro mexem no mesmo `viewport`, nenhum sabe da existência dos
+outros.
 
 ## Não-objetivos
 
@@ -24,8 +25,18 @@ sabe da existência dos outros.
 
 ## Comportamento esperado
 
-- Pan com espaço+arrasto, botão do meio, ou arrasto no vazio com a ferramenta mão.
-- Zoom com `Ctrl`/`Cmd` + scroll, centrado no cursor; scroll puro faz pan vertical.
+- **Pan com o botão do MEIO ou o DIREITO, arrastando** — funciona em cima de
+  QUALQUER coisa (nó, aresta, vazio), independente da ferramenta ativa: os dois
+  botões nunca disparam o gesto de esquerdo de baixo (mover nó, criar forma,
+  marquee), então não há ambiguidade nem precisa soltar a ferramenta atual pra
+  navegar. O botão direito não abre o menu de contexto do sistema enquanto estiver
+  sobre o canvas. Espaço+arrasto e uma ferramenta "mão" dedicada (`H`) ainda não
+  existem — ver "Questões em aberto".
+- **Zoom com o scroll, centrado no cursor** — não precisa mais de `Ctrl`/`Cmd`
+  (pinça de trackpad, que o browser reporta como `wheel` com `ctrlKey: true`,
+  cai no mesmo caminho de qualquer jeito). Só o eixo vertical (`deltaY`) conta;
+  scroll puramente horizontal não faz mais nada — o scroll já não faz pan (isso
+  virou o arrasto de botão do meio/direito, acima).
 - Clique seleciona um nó; `Shift`+clique adiciona ou remove da seleção.
 - Arrasto no vazio, com a ferramenta de seleção ativa, desenha um retângulo e
   seleciona nós e arestas **inteiramente contidos** nele. `Shift`+arrasto soma ao
@@ -45,19 +56,30 @@ sabe da existência dos outros.
 
 - **Gatilho**: `pointerdown` no nó (mover) ou no vazio com a ferramenta de seleção
   (retângulo de seleção). Com uma ferramenta de forma ativa, o vazio cria em vez de
-  selecionar — ver `editor/formas-e-texto.md`.
+  selecionar — ver `editor/formas-e-texto.md`. Pan é um gatilho À PARTE, resolvido
+  ANTES de qualquer um destes: botão do meio ou direito, capturado na fase de
+  CAPTURA do `pointerdown` do `<svg>` raiz (`beginPan`, em `DiagramCanvas.tsx`) —
+  chega antes que o evento alcance o nó/vazio por baixo e dispare mover/criar/
+  selecionar. Sem isso, botão direito EM CIMA de um nó começaria a arrastar o nó
+  (o handler dele não filtra por botão), não a câmera.
 - **Feedback durante**: os nós arrastados seguem o cursor numa camada de preview; o
   retângulo de seleção é desenhado tracejado enquanto arrasta, e o que já está dentro
   dele fica destacado em tempo real — a pessoa vê o que vai ser selecionado antes de
-  soltar, não só depois.
+  soltar, não só depois. Pan: o cursor vira `grabbing` (`.canvas--panning`) por toda
+  a duração do arrasto.
 - **Cancela**: `Esc` durante o arrasto de mover devolve os nós à posição original;
   `Esc` durante o arrasto de seleção descarta o retângulo sem alterar a seleção.
   Arrastar no minimapa e clicar nos botões de zoom não têm o que cancelar — não são
-  gesto de duas fases (começa/decide), são a mudança de uma vez.
-- **Atalhos**: `V` seleção · `H` mão · `Esc` limpar · `Delete`/`Backspace` apagar ·
-  `Ctrl/Cmd+A` selecionar tudo · `Ctrl/Cmd+0` zoom 100% · `Ctrl/Cmd+1` ajustar à tela.
-  Minimapa e botões de zoom não têm atalho de teclado próprio — são alternativa ao
-  mouse, não um caminho novo de teclado.
+  gesto de duas fases (começa/decide), são a mudança de uma vez. Pan também não tem
+  o que cancelar: cada `pointermove` já aplicou o deslocamento direto no
+  `viewport` (nada fica pendente pra desfazer no meio do gesto), e soltar o botão
+  simplesmente para de mover a câmera de onde ela já está.
+- **Atalhos**: `V` seleção · `Esc` limpar · `Delete`/`Backspace` apagar. Pan não tem
+  atalho de teclado — só os dois botões do mouse. Minimapa e botões de zoom também
+  não têm atalho próprio — são alternativa ao mouse, não um caminho novo de
+  teclado. `Ctrl/Cmd+A` (selecionar tudo), `Ctrl/Cmd+0` (zoom 100%), `Ctrl/Cmd+1`
+  (ajustar à tela) e uma ferramenta "mão" dedicada (`H`) ainda não existem — ver
+  `docs/specs/index.md`.
 - **Undo**: um arrasto inteiro é **uma** entrada, rotulada "Mover". Pan, zoom e
   seleção — **incluindo a seleção retangular, o arrasto no minimapa e os cliques de
   zoom** — **não** entram no histórico: não são mudança de documento, só de sessão.
@@ -89,8 +111,18 @@ sabe da existência dos outros.
 - Empate de clique (nós sobrepostos) resolve pelo maior `z`.
 - Pan e zoom são um único `transform` no `<g>` raiz — nunca recálculo posição a
   posição.
-- Zoom limitado entre 10% e 400%, pelos três caminhos de navegação (roda,
-  minimapa não zoom, botões zoom sim) — todos passam pelo mesmo `zoomAt`/clamp.
+- Zoom limitado entre 10% e 400%, pelos caminhos que fazem zoom (roda, botões de
+  zoom — minimapa não muda o zoom, só pan) — todos passam pelo mesmo
+  `zoomAt`/clamp.
+- **Pan por arrasto (botão do meio ou direito) usa o MESMO `panBy` do minimapa** —
+  um pixel de deslocamento na tela move um pixel de `viewport`, sem escalar pelo
+  zoom atual (a translação do `<g>` raiz já está FORA da escala — `translate(...)
+  scale(...)`, nessa ordem — então mover em pixel de tela é sempre 1:1, em
+  qualquer nível de zoom).
+- **Pan por arrasto funciona sobre QUALQUER coisa, não só o vazio** — o botão do
+  meio/direito é capturado antes de o evento alcançar nó, aresta ou alça de
+  redimensionar (ver "Interação no canvas"), então nunca compete com mover um nó,
+  redimensionar ou conectar, mesmo que o cursor esteja em cima de um deles.
 - Arrasto sem deslocamento mínimo (~3px) é tratado como clique, não como mover —
   vale também para o retângulo de seleção: um arrasto curto demais é clique no vazio
   (limpa a seleção), não uma seleção retangular vazia.
@@ -150,7 +182,10 @@ seleção seria complexidade sem ganho perceptível).
   passa a medir o próprio tamanho em tela (`ResizeObserver`, com uma leitura
   síncrona inicial via `getBoundingClientRect` — o primeiro disparo do observer
   pode demorar mais que um frame, e até lá minimapa/zoom calculariam a câmera com
-  um tamanho de canvas zerado).
+  um tamanho de canvas zerado). Pan por arrasto: `beginPan`/`panningRef` e o
+  `onPointerDownCapture`/`onContextMenu` do `<svg>`, todos em `DiagramCanvas.tsx` —
+  nenhum caso de uso novo, só chama o `panBy` que já existia (mesmo action do
+  minimapa e da roda antiga).
 - Performance: durante o arrasto só a camada de preview muda, via `transform`.
   Nada de reescrever atributo de geometria por frame. O minimapa recalcula a
   própria janela a cada render dele — é aritmética de poucos retângulos, não pesa
@@ -162,10 +197,24 @@ seleção seria complexidade sem ganho perceptível).
   necessidade, a modelagem está errada, não a performance.
 - Conversão tela↔mundo mora numa função pura testável, não espalhada nos handlers.
 - Acima de ~2000 nós, virtualizar por viewport. Abaixo disso, não otimizar antes.
+- **Gesto de botão do meio/direito só pode nascer na fase de CAPTURA do
+  `pointerdown` do `<svg>` raiz, nunca na de borbulhamento.** Um handler de
+  borbulhamento roda DEPOIS que o evento já passou pelo nó/aresta por baixo — e
+  esses handlers não filtram por botão, então já teriam começado a mover o nó ou
+  selecionar antes do pan ter a chance de agir. A captura intercepta antes disso
+  existir.
 
 ## Critérios de aceite
 
-- [ ] Zoom com Ctrl+scroll mantém sob o cursor o mesmo ponto do mundo.
+- [x] Zoom com o scroll (sem precisar de `Ctrl`/`Cmd`) mantém sob o cursor o mesmo
+      ponto do mundo.
+- [x] Scroll puramente horizontal (`deltaY === 0`) não faz zoom nem pan — não tem
+      mais o que fazer, e não deve "zoom out por acidente".
+- [x] Arrastar com o botão do meio ou o direito faz pan, EM CIMA de qualquer coisa
+      (nó, aresta, alça, vazio) — sem mover o nó, sem abrir o menu de contexto do
+      sistema, sem soltar a ferramenta ativa.
+- [x] Pan por arrasto move a câmera 1:1 em pixel de tela, em qualquer nível de
+      zoom.
 - [ ] Clicar num vão transparente do logo seleciona o nó.
 - [ ] Arrastar 5 nós selecionados gera **uma** entrada de undo.
 - [ ] `Esc` no meio do arrasto devolve os nós à posição inicial e não grava nada.
@@ -196,5 +245,14 @@ seleção seria complexidade sem ganho perceptível).
 ## Questões em aberto
 
 - [ ] Snap a grid no v1 ou depois? Se sim, qual passo (8px?).
-- [ ] Trackpad: pinça de zoom e pan de dois dedos precisam de tratamento distinto do
-      scroll de mouse.
+- [ ] **Trackpad: dois dedos rolando (sem pinçar) agora dá ZOOM, não pan.** Decisão
+      consciente desta entrega — "rolar o scroll = zoom" não distingue mouse físico
+      de trackpad, porque o browser entrega os dois como o mesmo `wheel`, sem sinal
+      confiável de qual foi (heurísticas por `deltaMode`/magnitude existem, mas não
+      foram implementadas). Quem usa trackpad tem o arrasto de botão do meio/direito
+      como alternativa pra pan; se isso for uma queixa recorrente, a resposta é
+      tratamento distinto por heurística, não voltar o scroll a fazer pan por padrão
+      (isso reabriria a ambiguidade que motivou a mudança).
+- [ ] Espaço+arrasto e uma ferramenta "mão" dedicada (`H`) continuam não
+      implementados (ver `docs/specs/index.md`) — ficariam como um TERCEIRO gatilho
+      de pan, ao lado do botão do meio e do direito.

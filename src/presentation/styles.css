@@ -607,6 +607,15 @@ button.tool--active {
   cursor: crosshair;
 }
 
+/* Arrastando com o botão do meio ou o direito — `!important` porque o cursor
+   normal do gesto por baixo (`grab` do nó, `crosshair` de criar) não deveria
+   competir: pan é o ÚNICO gesto possível enquanto a classe está presente
+   (`beginPan`, em `DiagramCanvas.tsx`), então o cursor dele sempre vence. */
+.canvas--panning,
+.canvas--panning * {
+  cursor: grabbing !important;
+}
+
 /* `Alt` pressionado: qualquer nó sob o cursor mostra que o próximo arrasto conecta,
    em vez de mover — o mesmo vocabulário visual (seta) do ponto de conexão fixo,
    só que disponível em QUALQUER lugar do nó, não só no lado direito. A imagem é
