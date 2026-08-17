@@ -12,13 +12,18 @@ pronta. Etapas marcadas com **spec pendente** exigem escrever a spec primeiro
 
 ---
 
-## 1. Estilo por elemento — **spec pendente**
+## 1. Estilo por elemento — cor livre e fonte, **spec pendente**
 
-Cor, borda, fonte. Não existe em lugar nenhum hoje — nem no modelo.
+Cor à escolha e fonte. Preenchimento/contorno de FORMA já existe — três aparências
+fixas (preenchida / contorno / tracejada), `Ctrl`+clique no canvas ou pelo painel de
+propriedades (`editor/formas-e-texto.md`, `ui/painel-propriedades.md`) — e não subiu
+`schemaVersion` (campo aditivo com padrão seguro, mesma técnica de sempre). O que
+falta é cor à escolha da pessoa e fonte — um espaço aberto, não um preset fechado.
 
-É a **primeira etapa que sobe `schemaVersion` para 2**, e portanto a que estreia a
-cadeia de migração em `domain/migration/`. Vale tratá-la como o teste real daquela
-decisão: um documento v1 salvo antes precisa abrir depois.
+Cor/fonte livres são as que provavelmente **sobem `schemaVersion` para 2** e estreiam
+a cadeia de migração em `domain/migration/` — um preset fechado (como os três
+estilos de forma) não precisa disso, mas "qualquer cor" é um formato de campo
+diferente o bastante para valer a pena decidir com calma, não assumir de antemão.
 
 **Decisão a fechar na spec:** o que é customizável pelo usuário e o que é do design
 system. Liberar tudo é o caminho para diagramas feios e para um painel infinito.

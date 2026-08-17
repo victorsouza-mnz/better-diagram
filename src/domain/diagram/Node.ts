@@ -2,9 +2,10 @@ import type { NodeId } from "../shared/ids.js";
 import type { Rect } from "../shared/geometry.js";
 import { fitPreservingAspect, translate } from "../shared/geometry.js";
 import { preservesAspectRatio, type NodeContent } from "./NodeContent.js";
+import type { ShapeStyle } from "./ShapeStyle.js";
 import type { TextAlign } from "./TextAlign.js";
 import type { TextFormat } from "./TextFormat.js";
-import { NotATextNode } from "./errors.js";
+import { NotAShapeNode, NotATextNode } from "./errors.js";
 
 /**
  * Entidade nó.
@@ -76,5 +77,16 @@ export class DiagramNode {
   withTextFormat(format: TextFormat): DiagramNode {
     if (this.content.kind !== "text") throw new NotATextNode(this.id);
     return this.with({ content: { ...this.content, format } });
+  }
+
+  /**
+   * Muda o preenchimento/contorno da forma — só existe em nó de FORMA. Mesma
+   * postura de `withTextAlign`/`withTextFormat`: chegar aqui com outro `kind` é
+   * bug de quem chamou (o painel e o Ctrl+clique só oferecem o controle quando o
+   * nó já é uma forma), não entrada inválida do usuário.
+   */
+  withShapeStyle(style: ShapeStyle): DiagramNode {
+    if (this.content.kind !== "shape") throw new NotAShapeNode(this.id);
+    return this.with({ content: { ...this.content, style } });
   }
 }

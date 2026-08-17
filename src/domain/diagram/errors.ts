@@ -46,3 +46,13 @@ export class NotATextNode extends DomainError {
     super(`Nó não é de texto: ${id}`);
   }
 }
+
+/**
+ * Lançado ao tentar mudar uma propriedade que só existe na variante `shape` de
+ * `NodeContent` (o estilo de preenchimento/contorno) num nó de outro `kind`.
+ */
+export class NotAShapeNode extends DomainError {
+  constructor(id: string) {
+    super(`Nó não é de forma: ${id}`);
+  }
+}

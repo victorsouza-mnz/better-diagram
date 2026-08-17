@@ -114,7 +114,7 @@ describe("codec — ida e volta", () => {
 
     const voltou = rodarIdaEVolta(comClasse);
     const node = voltou.node(NodeId("n1"));
-    expect(node?.content).toEqual({ kind: "shape", shape: "umlClass" });
+    expect(node?.content).toEqual({ kind: "shape", shape: "umlClass", style: "filled" });
     expect(node?.label).toBe("Pedido\n\n+id: string\n\n+calcularTotal()");
   });
 
@@ -125,8 +125,18 @@ describe("codec — ida e volta", () => {
 
     const voltou = rodarIdaEVolta(comPacote);
     const node = voltou.node(NodeId("n1"));
-    expect(node?.content).toEqual({ kind: "shape", shape: "umlPackage" });
+    expect(node?.content).toEqual({ kind: "shape", shape: "umlPackage", style: "filled" });
     expect(node?.label).toBe("Faturamento");
+  });
+
+  it("preserva o estilo de uma forma (contorno tracejado)", () => {
+    const comEstilo = Diagram.empty(DiagramId("d1")).addNode(
+      new DiagramNode(NodeId("n1"), rect(0, 0, 140, 80), shapeContent("rect", "dashed")),
+    );
+
+    const voltou = rodarIdaEVolta(comEstilo);
+    const content = voltou.node(NodeId("n1"))?.content;
+    expect(content?.kind === "shape" && content.style).toBe("dashed");
   });
 });
 
@@ -216,6 +226,38 @@ describe("codec — retrocompatibilidade", () => {
       horizontal: "center",
       vertical: "middle",
     });
+  });
+
+  it("forma salva antes do estilo existir abre preenchida", () => {
+    const antigo = {
+      schemaVersion: SCHEMA_VERSION,
+      id: "d1",
+      nodes: [{ id: "n1", rect: { x: 0, y: 0, w: 140, h: 80 }, content: { kind: "shape", shape: "rect" } }],
+      edges: [],
+    };
+
+    const diagram = fromDocument(parseDocument(JSON.stringify(antigo)));
+    const content = diagram.node(NodeId("n1"))?.content;
+    expect(content?.kind === "shape" && content.style).toBe("filled");
+  });
+
+  it("estilo de forma com valor desconhecido cai no padrão, em vez de rejeitar o documento", () => {
+    const adulterado = {
+      schemaVersion: SCHEMA_VERSION,
+      id: "d1",
+      nodes: [
+        {
+          id: "n1",
+          rect: { x: 0, y: 0, w: 140, h: 80 },
+          content: { kind: "shape", shape: "rect", style: "arco-iris" },
+        },
+      ],
+      edges: [],
+    };
+
+    const diagram = fromDocument(parseDocument(JSON.stringify(adulterado)));
+    const content = diagram.node(NodeId("n1"))?.content;
+    expect(content?.kind === "shape" && content.style).toBe("filled");
   });
 });
 

@@ -11,8 +11,9 @@ não há como alcançá-los, então o app só monta diagrama de logos soltos.
 
 ## Não-objetivos
 
-- **Estilo por elemento** (cor, borda, fonte). É a etapa seguinte, e é ela que sobe
-  o `schemaVersion`.
+- **Cor livre e fonte.** Preenchimento/contorno de forma (três aparências fixas) já
+  existe — ver "Estilo de preenchimento e contorno" abaixo. Cor à escolha e fonte
+  continuam de fora: são design system, não um preset fechado, e ainda não têm spec.
 - **Texto rico**: negrito por trecho, tamanhos diferentes na mesma caixa, links.
   Rótulo é texto simples com quebras de linha.
 - **Fixar a ferramenta** para criar várias formas em sequência sem reselecionar.
@@ -314,18 +315,28 @@ Um elemento HTML posicionado **sobre** o canvas, não um `foreignObject`:
 
 Um nó de **texto** (só ele — forma e ícone não têm) pode ser marcado como "código":
 o rótulo passa a ser desenhado em fonte monoespaçada com destaque mínimo de sintaxe
-JS (palavra-chave, string, comentário de linha, número). Dois jeitos de ligar:
+JS (palavra-chave, string, comentário de linha, número). Três jeitos de ligar:
 
 - O botão "Formato" no painel de propriedades — ver
   [`painel-propriedades.md`](../ui/painel-propriedades.md) para o controle.
-- **`Alt`+clique direto no nó** (sem arrastar): alterna entre simples e código sem
-  abrir o painel. É o MESMO gesto de `Alt`+arrasto que já existia para conectar —
-  `Alt`+clique é só a versão sem deslocamento dele, e esta entrega reaproveita esse
-  caso (que antes só desistia em silêncio) para nó de texto. `Alt`+arrastar até OUTRO
-  nó continua conectando normalmente, mesmo a partir de um nó de texto — só o clique
-  parado é que muda de sentido. Ver `editor/conectar-nos.md` (seção "Alt+clique
-  reaproveitado num nó de texto") para o mecanismo. Nas outras variantes (forma,
-  ícone), `Alt`+clique continua sem efeito.
+- **`Ctrl`+clique direto no nó** (`Cmd` no Mac): alterna entre simples e código sem
+  abrir o painel, sem selecionar — o MESMO gatilho que forma (`CycleShapeStyle`) e
+  aresta (`CycleEdgeStyle`) já usam para ciclar o próprio estilo. É o caminho
+  recomendado: um atalho só, consistente nos três tipos de elemento que têm
+  "estilo".
+- **`Alt`+clique direto no nó** (sem arrastar): faz a MESMA coisa. É o gesto mais
+  antigo dos dois — reaproveita o `Alt`+arrasto que já existia para conectar
+  (`Alt`+clique é a versão sem deslocamento dele; ver `editor/conectar-nos.md`,
+  seção "Alt+clique reaproveitado num nó de texto") — e continua funcionando, não
+  foi removido quando `Ctrl`+clique chegou. `Alt`+arrastar até OUTRO nó continua
+  conectando normalmente, mesmo a partir de um nó de texto — só o clique parado é
+  que muda de sentido.
+
+Os dois atalhos de clique chamam o MESMO caso de uso (`CycleTextFormat`) por baixo,
+então nunca divergem — ciclar por um e checar pelo outro (ou pelo painel) sempre
+mostra o estado certo. Nas outras variantes (forma, ícone), nem `Alt`+clique nem
+`Ctrl`+clique têm esse efeito — em forma, `Ctrl`+clique cicla o ESTILO DA FORMA
+(seção acima), não o formato de texto, que ela nem tem.
 
 Esta seção descreve o que o formato MUDA no desenho e na edição do nó de texto.
 
@@ -354,6 +365,29 @@ Esta seção descreve o que o formato MUDA no desenho e na edição do nó de te
   A alternativa mais simples — destacar só ao sair da edição — foi considerada e
   descartada: digitar um trecho de código sem ver a cor até terminar tira a única
   vantagem de ligar o modo código.
+
+## Estilo de preenchimento e contorno
+
+Um nó de **forma** (`rect`, `ellipse`, `diamond`, `umlClass`, `umlPackage` — não
+ícone, não texto) tem três aparências: **preenchida** (fundo sólido — o visual de
+sempre), **contorno** (só a borda, sem fundo) e **tracejada** (só a borda,
+tracejada). Não são dois eixos independentes (preenchido × tracejado) — "tracejada
+com fundo" nunca foi pedida, e as três aparências são um CICLO fechado, não um
+cruzamento de opções. Dois jeitos de trocar:
+
+- O grupo "Estilo da forma" no painel de propriedades — ver
+  [`painel-propriedades.md`](../ui/painel-propriedades.md) para o controle.
+- **`Ctrl`+clique direto na forma** (`Cmd` no Mac): avança um passo no ciclo
+  (preenchida → contorno → tracejada → volta), sem abrir o painel e **sem
+  selecionar** — mesmo gesto e mesma não-seleção que já vale para `Ctrl`+clique numa
+  aresta (`conectar-nos.md`, "O ciclo de estilo"). Em ícone ou texto, `Ctrl`+clique
+  não faz nada — nenhuma das duas variantes tem preenchimento/contorno próprio.
+
+A caixa de classe e a caixa de pacote (que são `ShapeKind`, não um `kind` à parte —
+ver "Caixa de classe UML"/"Caixa de pacote UML" acima) têm a MESMA propriedade: o
+estilo se aplica ao contorno externo da caixa; os divisores internos da classe
+continuam sólidos, sempre — só o contorno/fundo do retângulo (ou dos dois retângulos
+adjacentes do pacote) muda.
 
 ## Modelagem de domínio
 
@@ -385,6 +419,19 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
   testável isolado pela mesma razão que os catálogos de ícone são (`SimpleIconsCatalog`
   etc.) — mas sem a complexidade de asset/sanitização que eles têm, porque forma não
   tem asset.
+- **Tipo novo:** `ShapeStyle` — `"filled" | "outlined" | "dashed"`. Arquivo próprio
+  (`domain/diagram/ShapeStyle.ts`), mesmo formato de `TextFormat.ts`: um `DEFAULT_
+  SHAPE_STYLE` exportado e `nextShapeStyle(current)`, testado isoladamente, a ÚNICA
+  fonte da ordem do ciclo.
+- **`NodeContent`** ganha o campo na variante de forma:
+  `{ kind: "shape"; shape: ShapeKind; style: ShapeStyle }`. `shapeContent()` passa a
+  aceitar `style` como segundo parâmetro opcional, padrão `"filled"`.
+- **`DiagramNode.withShapeStyle(style)`** e **`Diagram.setShapeStyle(id, style)`** —
+  mesmo formato de `withTextFormat`/`setTextFormat`. Lança `NotAShapeNode` (novo em
+  `errors.ts`) se `content.kind !== "shape"`.
+- **Casos de uso novos:** `SetShapeStyle` (escolha direta, painel) e
+  `CycleShapeStyle` (avança um passo, `Ctrl`+clique) — mesmo par de
+  `SetEdgeStyle`/`CycleEdgeStyle`, em `application/editing.ts`.
 
 ## Impacto no documento
 
@@ -405,14 +452,23 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
   (modelagem completa em [`painel-propriedades.md`](../ui/painel-propriedades.md),
   onde mora o controle que muda o campo): padrão `"plain"`, `schemaVersion` não sobe,
   documento salvo antes do campo existir abre como texto simples.
+- **Estilo de forma** (`content.style`, `"filled" | "outlined" | "dashed"`) é um
+  campo aditivo a mais dentro da variante `shape` de `content`. `schemaVersion` não
+  sobe: padrão `"filled"` é o visual de sempre, documento salvo antes do campo
+  existir abre preenchido, e um valor desconhecido (documento adulterado, ou de uma
+  versão futura com mais aparências) cai no mesmo padrão em vez de recusar o
+  documento — mesma tolerância já usada em `format`/`align`.
 
 ## Impacto por camada
 
-- `domain/`: `NodeContent.ts` (`ShapeKind` ganha `"umlClass"` e `"umlPackage"`).
+- `domain/`: `NodeContent.ts` (`ShapeKind` ganha `"umlClass"` e `"umlPackage"`;
+  variante `shape` ganha `style`); `ShapeStyle.ts` (tipo + ciclo); `Node.ts`
+  (`withShapeStyle`); `Diagram.ts` (`setShapeStyle`); `errors.ts` (`NotAShapeNode`).
 - `application/`: `AddTextNode`; `AddShapeNode` ganha o `label` opcional;
   `DEFAULT_UML_CLASS_SIZE` e `UML_CLASS_TEMPLATE` em `editing.ts`. Pacote não ganha
   constante própria — reaproveita `DEFAULT_SHAPE_SIZE`, mesmo tamanho de
-  retângulo/elipse/losango.
+  retângulo/elipse/losango. `SetShapeStyle`/`CycleShapeStyle`, também em
+  `editing.ts`.
 - `infrastructure/`: `UmlIconCatalog.ts` perde a entrada `uml-package` (o ícone
   estático saiu, virou forma).
 - `presentation/`: barra de ferramentas (`Toolbar.tsx`, tool `umlPackage` e atalho
@@ -427,12 +483,20 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
   trás do `<textarea>` transparente), `measureText.ts` (`MONO_FONT_FAMILY`, medidor
   e `textHeightFor` aceitando a família de fonte). `Alt`+clique reaproveita
   `useEditorSession.endConnect` — nenhum listener novo (ver `conectar-nos.md`).
+  `Ctrl`+clique é um `useCallback` próprio (`cycleTextFormat`, em
+  `useEditorSession.ts`) chamado do MESMO bloco do `onPointerDown` do nó em
+  `DiagramCanvas.tsx` que já trata `Ctrl`+clique em forma — os dois `if` vizinhos,
+  não dois listeners separados.
   Geometria na paleta: `presentation/palette/geometryCatalog.ts` (dado + busca),
   `presentation/shapeGlyphs.ts` (glifo/rótulo/atalho — fonte única com
   `Toolbar.tsx`), `palette/Palette.tsx` (renomeado de `IconPalette.tsx` — agora
   desenha os dois grupos e a mecânica de arrasto compartilhada,
   `beginPaletteDrag`), `useEditorSession.ts` (`addShapeAt`, `shapeDefaults`
-  compartilhado com `endCreate`).
+  compartilhado com `endCreate`). Estilo de forma: `NodeView.tsx` (`style` vira
+  classe modificadora — `node-shape--outlined`/`--dashed` — em cima da MESMA
+  `.node-shape` de sempre, nunca um desenho à parte), `DiagramCanvas.tsx`
+  (`Ctrl`+clique numa forma, no `onPointerDown` do nó — mesmo bloco que já trata
+  `Alt`), `styles.css` (as duas classes modificadoras).
 - Performance: a quebra de linha é recalculada por render de nó. Se pesar, memoiza
   por (texto, largura) — não antes.
 
@@ -488,7 +552,10 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
       campo existir abre como texto simples.
 - [x] `Alt`+clique (sem arrastar) num nó de texto alterna o formato, igual ao botão
       do painel; `Alt`+arrastar do mesmo nó até outro continua conectando.
-- [x] `Alt`+clique num nó de forma ou ícone não faz nada.
+- [x] `Ctrl`+clique num nó de texto faz a MESMA troca que `Alt`+clique, sem
+      selecionar o nó nem mudar a seleção que já existia.
+- [x] `Alt`+clique num nó de forma ou ícone não faz nada; `Ctrl`+clique num ícone
+      também não faz nada (em forma, cicla o estilo — seção acima).
 - [x] `P` + clique cria uma caixa de pacote UML vazia, com a aba no canto superior
       esquerdo e cantos retos.
 - [x] O rótulo de uma caixa de pacote é texto simples centralizado, sem
@@ -511,6 +578,16 @@ Nada novo no agregado. `SetNodeLabel` e `AddShapeNode` já existem.
       ferramentas continua dizendo "Classe UML"/"Pacote UML" por extenso.
 - [x] Buscar um termo sem nenhuma forma correspondente esconde a seção "Geometria"
       inteira (não mostra vazia); o mesmo vale pra "Ícones".
+- [x] Uma forma nasce preenchida; `Ctrl`+clique nela percorre preenchida → contorno
+      → tracejada → volta, sem selecionar.
+- [x] `Ctrl`+clique num ícone ou num nó de texto não faz nada.
+- [x] O estilo de forma escolhido no painel e pelo `Ctrl`+clique ficam consistentes:
+      o botão certo aparece destacado depois de qualquer um dos dois caminhos.
+- [x] Um passo no ciclo (por `Ctrl`+clique ou pelo painel) é **uma** entrada de undo.
+- [x] O estilo sobrevive à recarga e ao export/import; um documento salvo antes do
+      campo existir abre preenchido.
+- [x] Caixa de classe e caixa de pacote também aceitam os três estilos, aplicados ao
+      contorno externo — os divisores internos da classe continuam sólidos.
 
 ## Questões em aberto
 

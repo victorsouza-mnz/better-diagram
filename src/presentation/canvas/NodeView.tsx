@@ -5,6 +5,7 @@ import {
   handlePosition,
   type ResizeHandle,
 } from "../../domain/diagram/services/resizeGeometry.js";
+import type { ShapeStyle } from "../../domain/diagram/ShapeStyle.js";
 import type { Rect } from "../../domain/shared/geometry.js";
 import { NodeLabel } from "./NodeLabel.js";
 
@@ -119,7 +120,9 @@ export const NodeView = ({
         />
       )}
 
-      {content.kind === "shape" && <Shape shape={content.shape} w={w} h={h} />}
+      {content.kind === "shape" && (
+        <Shape shape={content.shape} style={content.style} w={w} h={h} />
+      )}
 
       {/* Área de clique: cobre o retângulo inteiro, inclusive os vãos do logo. */}
       <rect width={w} height={h} fill="transparent" className="node-hit" />
@@ -193,24 +196,46 @@ export const NodeView = ({
 const dataUri = (svg: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 
-const Shape = ({ shape, w, h }: { shape: string; w: number; h: number }) => {
-  const style = { pointerEvents: "none" } as const;
+/**
+ * Preenchimento/contorno (`ShapeStyle`) vira um MODIFICADOR de classe, ao lado de
+ * `node-shape` — nunca um segundo elemento nem um estilo inline: as três aparências
+ * são puramente CSS (`fill`/`stroke`/`stroke-dasharray`), então a mesma classe que
+ * já desenhava a forma continua desenhando, só muda de aparência.
+ */
+const styleClassName = (style: ShapeStyle): string =>
+  style === "filled" ? "node-shape" : `node-shape node-shape--${style}`;
+
+const Shape = ({
+  shape,
+  style,
+  w,
+  h,
+}: {
+  shape: string;
+  style: ShapeStyle;
+  w: number;
+  h: number;
+}) => {
+  const className = styleClassName(style);
+  const svgStyle = { pointerEvents: "none" } as const;
   if (shape === "ellipse") {
-    return <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} className="node-shape" style={style} />;
+    return (
+      <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} className={className} style={svgStyle} />
+    );
   }
   if (shape === "diamond") {
     return (
       <polygon
         points={`${w / 2},0 ${w},${h / 2} ${w / 2},${h} 0,${h / 2}`}
-        className="node-shape"
-        style={style}
+        className={className}
+        style={svgStyle}
       />
     );
   }
   if (shape === "umlClass") {
     // Sem `rx`: canto reto é a convenção da caixa de classe — arredondado é o
     // resto das formas, e as duas nunca deveriam se confundir de longe.
-    return <rect width={w} height={h} className="node-shape" style={style} />;
+    return <rect width={w} height={h} className={className} style={svgStyle} />;
   }
   if (shape === "umlPackage") {
     // Aba no canto superior esquerdo + corpo — notação de pacote UML. Dois
@@ -222,11 +247,11 @@ const Shape = ({ shape, w, h }: { shape: string; w: number; h: number }) => {
     const tabWidth = Math.min(w * 0.45, 64);
     const tabHeight = Math.min(h * 0.3, 22);
     return (
-      <g style={style}>
-        <rect width={tabWidth} height={tabHeight} className="node-shape" />
-        <rect y={tabHeight} width={w} height={h - tabHeight} className="node-shape" />
+      <g style={svgStyle}>
+        <rect width={tabWidth} height={tabHeight} className={className} />
+        <rect y={tabHeight} width={w} height={h - tabHeight} className={className} />
       </g>
     );
   }
-  return <rect width={w} height={h} rx={6} className="node-shape" style={style} />;
+  return <rect width={w} height={h} rx={6} className={className} style={svgStyle} />;
 };

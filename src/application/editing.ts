@@ -3,6 +3,7 @@ import { DiagramNode } from "../domain/diagram/Node.js";
 import { Edge } from "../domain/diagram/Edge.js";
 import { nextEdgeStyle, type EdgeStyle } from "../domain/diagram/EdgeStyle.js";
 import { shapeContent, textContent, type ShapeKind } from "../domain/diagram/NodeContent.js";
+import { nextShapeStyle, type ShapeStyle } from "../domain/diagram/ShapeStyle.js";
 import type { TextAlign } from "../domain/diagram/TextAlign.js";
 import { nextTextFormat, type TextFormat } from "../domain/diagram/TextFormat.js";
 import { rect, type Point, type Rect } from "../domain/shared/geometry.js";
@@ -139,6 +140,31 @@ export class CycleTextFormat {
     const node = input.diagram.node(input.id);
     if (!node || node.content.kind !== "text") return input.diagram;
     return input.diagram.setTextFormat(input.id, nextTextFormat(node.content.format));
+  }
+}
+
+/** Preenchimento/contorno de uma forma — só existe em nó de forma. */
+export class SetShapeStyle {
+  execute(input: { diagram: Diagram; id: NodeId; style: ShapeStyle }): Diagram {
+    return input.diagram.setShapeStyle(input.id, input.style);
+  }
+}
+
+/**
+ * Ctrl+clique numa forma: avança um passo no ciclo de 3 estilos.
+ *
+ * Mesma forma de `CycleEdgeStyle`/`CycleTextFormat` — a ORDEM do ciclo é regra de
+ * domínio (`nextShapeStyle`, testada isoladamente); este caso de uso só busca o nó,
+ * pede o próximo estilo e comete. Nó que não existe ou não é forma não faz nada, em
+ * vez de lançar — mesma postura defensiva de `CycleTextFormat` para nó que não é de
+ * texto (o gesto no canvas só chama isto quando já sabe que é uma forma, mas o caso
+ * de uso não confia nisso).
+ */
+export class CycleShapeStyle {
+  execute(input: { diagram: Diagram; id: NodeId }): Diagram {
+    const node = input.diagram.node(input.id);
+    if (!node || node.content.kind !== "shape") return input.diagram;
+    return input.diagram.setShapeStyle(input.id, nextShapeStyle(node.content.style));
   }
 }
 

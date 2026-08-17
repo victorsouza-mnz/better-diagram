@@ -13,6 +13,7 @@ import { preservesAspectRatio } from "../../domain/diagram/NodeContent.js";
 import type { TextAlign } from "../../domain/diagram/TextAlign.js";
 import type { TextFormat } from "../../domain/diagram/TextFormat.js";
 import type { EdgeStyle } from "../../domain/diagram/EdgeStyle.js";
+import type { ShapeStyle } from "../../domain/diagram/ShapeStyle.js";
 import { History } from "../../application/history/History.js";
 import {
   EMPTY_SELECTION,
@@ -789,6 +790,56 @@ export const useEditorSession = () => {
     [commit],
   );
 
+  /**
+   * Ctrl+clique num nó de texto: alterna entre texto simples e código — mesmo
+   * formato de `cycleShapeStyle`/`cycleEdgeStyle`, pra usar o MESMO gatilho nos três
+   * tipos de elemento com estilo (forma, aresta, texto). `Alt`+clique (sem arrastar)
+   * continua fazendo a mesma coisa — é o gesto que já existia antes de `Ctrl`+clique
+   * chegar aqui (reaproveita o clique-sem-deslocamento do `Alt`+arrasto de conectar,
+   * ver `endConnect`) — os dois caminhos chamam o mesmo `CycleTextFormat` por baixo,
+   * então nunca divergem.
+   */
+  const cycleTextFormat = useCallback(
+    (id: NodeId) => {
+      commit(
+        useCases.cycleTextFormat.execute({ diagram: diagramRef.current, id }),
+        selectionRef.current,
+        "Mudar formato do texto",
+      );
+    },
+    [commit],
+  );
+
+  /**
+   * Ctrl+clique numa forma: avança um passo no ciclo de 3 estilos. Mesmo formato de
+   * `cycleEdgeStyle` — ação imediata, sem gesto de arrasto, não mexe na seleção.
+   */
+  const cycleShapeStyle = useCallback(
+    (id: NodeId) => {
+      commit(
+        useCases.cycleShapeStyle.execute({ diagram: diagramRef.current, id }),
+        selectionRef.current,
+        "Mudar estilo da forma",
+      );
+    },
+    [commit],
+  );
+
+  /**
+   * Clique num botão de estilo do painel: escolha direta — mesmo rótulo de undo do
+   * Ctrl+clique, "Mudar estilo da forma", mesma razão de `setEdgeStyle`.
+   */
+  const setShapeStyle = useCallback(
+    (id: NodeId, style: ShapeStyle) => {
+      commit(
+        useCases.setShapeStyle.execute({ diagram: diagramRef.current, id, style }),
+        selectionRef.current,
+        "Mudar estilo da forma",
+      );
+    },
+    [commit],
+  );
+
   // `addIcon` é assíncrono (o hash do asset passa por WebCrypto). Ler o diagrama de
   // uma ref evita cometer sobre uma versão velha, capturada no closure antes do
   // await — bug que só aparece quando duas inserções se cruzam.
@@ -947,6 +998,9 @@ export const useEditorSession = () => {
       setEdgeStyle,
       setTextAlign,
       setTextFormat,
+      cycleTextFormat,
+      cycleShapeStyle,
+      setShapeStyle,
       setTool,
       beginResize,
       updateResize,

@@ -1,4 +1,5 @@
 import type { AssetId } from "../shared/ids.js";
+import { DEFAULT_SHAPE_STYLE, type ShapeStyle } from "./ShapeStyle.js";
 import { DEFAULT_TEXT_ALIGN, type TextAlign } from "./TextAlign.js";
 import { DEFAULT_TEXT_FORMAT, type TextFormat } from "./TextFormat.js";
 
@@ -17,7 +18,7 @@ import { DEFAULT_TEXT_FORMAT, type TextFormat } from "./TextFormat.js";
  */
 export type NodeContent =
   | { readonly kind: "icon"; readonly assetId: AssetId }
-  | { readonly kind: "shape"; readonly shape: ShapeKind }
+  | { readonly kind: "shape"; readonly shape: ShapeKind; readonly style: ShapeStyle }
   | { readonly kind: "text"; readonly align: TextAlign; readonly format: TextFormat };
 
 /**
@@ -42,9 +43,13 @@ export const iconContent = (assetId: AssetId): NodeContent => ({
   assetId,
 });
 
-export const shapeContent = (shape: ShapeKind): NodeContent => ({
+export const shapeContent = (
+  shape: ShapeKind,
+  style: ShapeStyle = DEFAULT_SHAPE_STYLE,
+): NodeContent => ({
   kind: "shape",
   shape,
+  style,
 });
 
 export const textContent = (

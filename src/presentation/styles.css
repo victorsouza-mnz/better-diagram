@@ -2,6 +2,11 @@
   --bg: #f7f7f8;
   --surface: #ffffff;
   --border: #e3e3e6;
+  /* Contorno de FORMA (`.node-shape`) é um token à parte de `--border` — este
+     precisa ficar bem mais claro que `--border` no escuro (ver o bloco `prefers-
+     color-scheme: dark` abaixo) para não desaparecer contra o fundo do canvas; no
+     claro, os dois valores coincidem, então nada muda aqui. */
+  --shape-border: #e3e3e6;
   --text: #1a1a1c;
   --muted: #6b6b73;
   --accent: #3b6df5;
@@ -22,6 +27,10 @@
     --bg: #131316;
     --surface: #1b1b1f;
     --border: #2d2d33;
+    /* Bem mais claro que `--border`: no escuro, `--border` (#2d2d33) contra o fundo
+       do canvas (#131316) fica quase invisível — a borda de uma forma precisa se
+       notar, não só existir tecnicamente no DOM. */
+    --shape-border: #55555f;
     --text: #ececed;
     --muted: #9a9aa3;
     --accent: #6f95ff;
@@ -45,6 +54,7 @@
   --bg: #f7f7f8;
   --surface: #ffffff;
   --border: #e3e3e6;
+  --shape-border: #e3e3e6;
   --text: #1a1a1c;
   --muted: #6b6b73;
   --accent: #3b6df5;
@@ -60,6 +70,7 @@
   --bg: #131316;
   --surface: #1b1b1f;
   --border: #2d2d33;
+  --shape-border: #55555f;
   --text: #ececed;
   --muted: #9a9aa3;
   --accent: #6f95ff;
@@ -425,8 +436,20 @@ button.tool--active {
 
 .node-shape {
   fill: var(--surface);
-  stroke: var(--border);
+  stroke: var(--shape-border);
   stroke-width: 1.5;
+}
+
+/* `--filled` (o padrão) não precisa de classe — as duas outras aparências
+   (`ShapeStyle.ts`) são só `fill`/`stroke-dasharray` a mais em cima do mesmo
+   `.node-shape`, nunca um desenho à parte. */
+.node-shape--outlined,
+.node-shape--dashed {
+  fill: none;
+}
+
+.node-shape--dashed {
+  stroke-dasharray: 6 4;
 }
 
 .node-selection {
@@ -447,7 +470,7 @@ button.tool--active {
 /* Nó de texto sem rótulo: só um contorno tracejado + dica, para continuar achável. */
 .text-placeholder-box {
   fill: none;
-  stroke: var(--border);
+  stroke: var(--shape-border);
   stroke-width: 1;
   stroke-dasharray: 4 4;
   rx: 4;
@@ -493,7 +516,7 @@ button.tool--active {
 /* ------------------------------------------------------- caixa de classe UML */
 
 .uml-class-divider {
-  stroke: var(--border);
+  stroke: var(--shape-border);
   stroke-width: 1;
 }
 

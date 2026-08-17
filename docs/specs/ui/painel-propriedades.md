@@ -6,17 +6,19 @@
 ## Objetivo
 
 Um painel lateral, à DIREITA do canvas, que mostra os controles do elemento
-selecionado. Três controles hoje: formato (texto simples / código) e alinhamento
-horizontal e vertical do rótulo de um nó de **texto** dentro da caixa, e
-direção/traço de uma **aresta** selecionada. O painel é uma superfície que vai
-crescer — mais controles (cor, borda) chegam depois, cada um com sua própria
-entrega.
+selecionado. Quatro controles hoje: formato (texto simples / código) e alinhamento
+horizontal e vertical do rótulo de um nó de **texto** dentro da caixa,
+preenchimento/contorno de uma **forma**, e direção/traço de uma **aresta**
+selecionada. O painel é uma superfície que vai crescer — cor livre e fonte chegam
+depois, com o design system, cada um com sua própria entrega.
 
 ## Não-objetivos
 
 - **Alinhamento em forma ou ícone.** As duas variantes continuam com o texto sempre
   centralizado (forma) ou sempre abaixo (ícone) — regra de `formas-e-texto.md`, que
-  esta spec não mexe. Só o nó de texto ganha o controle.
+  esta spec não mexe. Só o nó de texto ganha o controle de alinhamento.
+- **Preenchimento/contorno em ícone ou texto.** Só a forma tem — ícone é sempre a
+  própria imagem, texto nunca teve caixa (ver `formas-e-texto.md`).
 - **Editar vários nós ou arestas de uma vez.** Igual às alças de redimensionar:
   seleção múltipla não mostra o painel — não há "o" alinhamento (ou "o" estilo) de
   um conjunto heterogêneo.
@@ -53,17 +55,21 @@ aqui, só um novo consumidor dele.
     grupo horizontal **some** — o alinhamento naquele eixo é sempre à esquerda nesse
     modo, e mostrar botões que não fazem nada seria um controle mentindo. O grupo
     vertical continua, porque ele continua valendo.
+  - **Nó de forma:** um grupo só de três botões — "Estilo da forma" (preenchida /
+    contorno / tracejada, ver [`formas-e-texto.md`](../editor/formas-e-texto.md)).
+    Ao contrário do estilo de aresta, não são dois eixos independentes: é um CICLO
+    fechado de três aparências, a mesma ordem que o `Ctrl`+clique no canvas percorre
+    (`ShapeStyle`) — um grupo, não dois.
   - **Aresta:** dois grupos de dois botões — direção (unidirecional / bidirecional)
     e traço (sólido / tracejado). Os mesmos dois eixos independentes que o
     Ctrl+clique já cicla (`EdgeStyle`) — o painel só troca o gesto de "ciclar" por
     "escolher direto".
-  - **Qualquer outro item selecionado** (forma, ícone): o painel aparece, mas mostra
-    uma frase — "Nada para configurar neste elemento." Não é um bug nem um estado
-    transitório: é o painel dizendo que, hoje, aquele tipo ainda não tem controle
-    nenhum. A condição de quando mostrar o quê só cresce conforme mais controles
-    entram (mesmo raciocínio de `formas-e-texto.md` sobre a ferramenta ativa ser
-    estado de sessão: cada entrega futura só acrescenta um `case`, não redesenha o
-    painel).
+  - **Ícone selecionado:** o painel aparece, mas mostra uma frase — "Nada para
+    configurar neste elemento." Não é um bug nem um estado transitório: é o painel
+    dizendo que, hoje, aquele tipo ainda não tem controle nenhum. A condição de
+    quando mostrar o quê só cresce conforme mais controles entram (mesmo raciocínio
+    de `formas-e-texto.md` sobre a ferramenta ativa ser estado de sessão: cada
+    entrega futura só acrescenta um `case`, não redesenha o painel).
   - Em todo grupo, o botão do valor atual fica destacado — mesma cor de "ativo" já
     usada na ferramenta selecionada da barra superior (fundo tingido de `--accent`),
     reaproveitada, não uma nova convenção por campo.
@@ -82,8 +88,11 @@ aqui, só um novo consumidor dele.
 
 Alternativos:
 
-- Seleciona um retângulo: o painel aparece com "Nada para configurar neste
-  elemento".
+- Seleciona um retângulo: o painel aparece com "Estilo da forma" (três botões).
+  Clica "Contorno": o fundo some, só a borda fica. `Ctrl`+clique na mesma forma, no
+  canvas: cicla para o próximo dos 3 estados — o painel re-renderiza com o botão
+  certo destacado, porque lê o mesmo `content.style` que o clique acabou de mudar.
+- Seleciona um ícone: o painel aparece com "Nada para configurar neste elemento".
 - Seleciona uma aresta: o painel mostra direção e traço. Clica "bidirecional": a
   ponta que faltava aparece. Clica "tracejado": o traço muda — cada clique, uma
   entrada de undo.
@@ -105,13 +114,15 @@ Alternativos:
   Desfazer é `Ctrl/Cmd+Z`, como qualquer outra mudança commitada.
 - **Atalho de teclado: não tem, para nenhum dos controles.** Alinhamento tem seis
   valores (3 horizontal × 3 vertical) sem mapeamento óbvio de tecla única. Estilo de
-  aresta JÁ tem um atalho — `Ctrl`+clique na própria aresta, que cicla os 4 combos —
-  e ele continua sendo o atalho; o painel não ganha um segundo, redundante.
+  aresta e estilo de forma JÁ têm atalho — `Ctrl`+clique no próprio elemento, que
+  cicla os combos — e ele continua sendo o atalho; o painel não ganha um segundo,
+  redundante.
 - **Undo:** cada clique num botão do painel é **uma** entrada — "Alinhar texto" para
-  o nó de texto, "Mudar estilo da aresta" para a aresta (mesmo rótulo que o
-  Ctrl+clique já usa: é a mesma mudança, só por um gatilho diferente, e as duas
-  precisam ficar indistinguíveis no histórico). Nunca uma entrada por eixo
-  combinado, nem uma por combinação de dois cliques.
+  o nó de texto, "Mudar estilo da aresta" para a aresta, "Mudar estilo da forma"
+  para a forma (mesmo rótulo que o Ctrl+clique já usa em cada caso: é a mesma
+  mudança, só por um gatilho diferente, e as duas precisam ficar indistinguíveis no
+  histórico). Nunca uma entrada por eixo combinado, nem uma por combinação de dois
+  cliques.
 
 ## Regras de negócio
 
@@ -145,6 +156,17 @@ Alternativos:
 - **Trocar o formato não apaga nem reformata o texto** — o `label` é a mesma string
   nos dois formatos; só a APRESENTAÇÃO muda (fonte, cor por token, alinhamento
   horizontal forçado em código). Ir e voltar entre os dois formatos é sem perda.
+- **Estilo de forma é um CICLO fechado de três, não dois eixos independentes** —
+  ao contrário de `EdgeStyle`, "tracejada com fundo" nunca foi pedida como opção;
+  `ShapeStyle` é um tipo de três valores (`ShapeStyle.ts`), não dois booleanos. O
+  painel mostra um grupo só de três botões, não dois grupos de dois.
+- **O painel não introduz um segundo caminho de mudar estilo de forma** — chama o
+  MESMO `Diagram.setShapeStyle` que o Ctrl+clique já chama (via `CycleShapeStyle`);
+  só não cicla, escolhe direto. Mesma garantia já vale para estilo de aresta.
+- **Estilo de forma é propriedade do CONTEÚDO, mesma regra do alinhamento/formato**
+  — só existe dentro da variante `{ kind: "shape" }` de `NodeContent`. Padrão
+  `"filled"`: uma forma criada antes deste controle existir abre exatamente como
+  sempre abriu (preenchida).
 
 ## Estados de UI
 
@@ -153,9 +175,11 @@ Alternativos:
 - Selecionado, nó de texto: o grupo de formato (dois botões) e os grupos de
   alinhamento; o valor atual de cada um destacado. Em modo código, só o grupo de
   formato e o vertical aparecem — o horizontal fica ausente, não desabilitado.
+- Selecionado, forma: um grupo de três botões ("Estilo da forma"); o valor atual
+  destacado.
 - Selecionado, aresta: dois grupos de dois botões; direção e traço atuais
   destacados.
-- Selecionado, forma ou ícone: frase "Nada para configurar neste elemento."
+- Selecionado, ícone: frase "Nada para configurar neste elemento."
 - Erro: não se aplica — não há entrada de usuário nem I/O nesta interação.
 
 ## Modelagem de domínio
@@ -203,14 +227,35 @@ Alternativos:
   toggle de dois valores em vez de um ciclo de quatro.
 - **Caso de uso novo:** `CycleTextFormat` — busca o nó, pede `nextTextFormat` e
   comete; nó que não existe ou não é de texto não faz nada (mesma postura de
-  `CycleEdgeStyle` pra aresta inexistente). É quem `Alt`+clique num nó de texto
-  chama, de dentro de `useEditorSession.endConnect` — ver `editor/conectar-nos.md`
-  (seção "Alt+clique reaproveitado num nó de texto") para o gatilho; aqui é só o
-  caso de uso que ele aciona.
+  `CycleEdgeStyle` pra aresta inexistente). DOIS gatilhos chamam o mesmo caso de
+  uso: `Alt`+clique num nó de texto, de dentro de `useEditorSession.endConnect` (ver
+  `editor/conectar-nos.md`, seção "Alt+clique reaproveitado num nó de texto"), e
+  `Ctrl`+clique, de um `useCallback` próprio (`cycleTextFormat`) chamado do
+  `onPointerDown` do nó em `DiagramCanvas.tsx` — o mesmo bloco que já cicla estilo
+  de forma com `Ctrl`+clique. Os dois nunca divergem porque é o MESMO caso de uso
+  por baixo.
 - **Destaque de sintaxe é lógica de apresentação, não de domínio** — o tokenizador
   (`presentation/canvas/jsHighlight.ts`, função pura testada isolada) só decide COR
   por token para desenhar; nada disso entra no agregado ou no documento. O documento
   guarda o `label` (a string) e o `format` (o modo) — nunca o resultado tokenizado.
+- **Tipo novo:** `ShapeStyle` — `"filled" | "outlined" | "dashed"`. Arquivo próprio
+  (`domain/diagram/ShapeStyle.ts`), mesmo formato de `TextFormat.ts`: um `DEFAULT_
+  SHAPE_STYLE` exportado e um `nextShapeStyle(current)` puro e testado — a ÚNICA
+  fonte da ordem do ciclo de três (não dois booleanos independentes: ver "Regras de
+  negócio").
+- **`NodeContent`** ganha o campo na variante de forma:
+  `{ kind: "shape"; shape: ShapeKind; style: ShapeStyle }`. `shapeContent()` passa a
+  aceitar `style` como segundo parâmetro opcional, padrão `"filled"`.
+- **`DiagramNode.withShapeStyle(style: ShapeStyle): DiagramNode`** — mesmo formato
+  de `withTextAlign`/`withTextFormat`. Lança `NotAShapeNode` (novo em
+  `domain/diagram/errors.ts`) se `content.kind !== "shape"`.
+- **`Diagram.setShapeStyle(id: NodeId, style: ShapeStyle): Diagram`** — mesmo
+  formato de `setTextFormat`.
+- **Casos de uso novos:** `SetShapeStyle` (escolha direta, o painel usa) e
+  `CycleShapeStyle` (avança um passo, o `Ctrl`+clique no canvas usa) — mesmo par de
+  `SetEdgeStyle`/`CycleEdgeStyle`, em `application/editing.ts`. `CycleShapeStyle`
+  não faz nada se o nó não existe ou não é forma, mesma postura defensiva de
+  `CycleTextFormat`/`CycleEdgeStyle`.
 
 ## Impacto no documento
 
@@ -234,35 +279,45 @@ Alternativos:
   continua abrindo, o codec preenche o padrão na leitura. Valor desconhecido também
   cai no padrão, em vez de recusar o documento — mesma tolerância que já vale para
   qualquer valor de allowlist inesperado no codec.
+- **Campo novo:** `style` dentro de `content` quando `content.kind === "shape"`,
+  string `"filled" | "outlined" | "dashed"`.
+- **`schemaVersion` NÃO sobe** — mesmo raciocínio de `format`: campo aditivo, padrão
+  `"filled"` (o comportamento de sempre), documento salvo antes do campo existir
+  continua abrindo preenchido, valor desconhecido cai no padrão em vez de recusar o
+  documento.
 
 ## Impacto por camada
 
-- `domain/`: `TextAlign.ts` (VO), `TextFormat.ts` (tipo), `NodeContent.ts` (campos +
-  factory), `Node.ts` (`withTextAlign`, `withTextFormat`), `Diagram.ts`
-  (`setTextAlign`, `setTextFormat`), `errors.ts` (`NotATextNode`). Nada novo para
-  estilo de aresta — reaproveita `EdgeStyle.ts`.
-- `application/`: `SetTextAlign`, `SetTextFormat`, `CycleTextFormat` e
-  `SetEdgeStyle`, os quatro em `editing.ts`.
+- `domain/`: `TextAlign.ts` (VO), `TextFormat.ts` (tipo), `ShapeStyle.ts` (tipo +
+  ciclo), `NodeContent.ts` (campos + factories), `Node.ts` (`withTextAlign`,
+  `withTextFormat`, `withShapeStyle`), `Diagram.ts` (`setTextAlign`,
+  `setTextFormat`, `setShapeStyle`), `errors.ts` (`NotATextNode`, `NotAShapeNode`).
+  Nada novo para estilo de aresta — reaproveita `EdgeStyle.ts`.
+- `application/`: `SetTextAlign`, `SetTextFormat`, `CycleTextFormat`,
+  `SetShapeStyle`, `CycleShapeStyle` e `SetEdgeStyle`, todos em `editing.ts`.
 - `infrastructure/`: nada — o codec mora no domínio (`document/codec.ts` e
   `document/types.ts`, já contados acima).
 - `presentation/`: o painel (`presentation/panel/PropertiesPanel.tsx`, novo — os
-  três campos moram no mesmo componente, com um `FieldButton` compartilhado), o novo
+  campos moram no mesmo componente, com um `FieldButton` compartilhado), o novo
   cálculo de `firstBaseline`/`x` em `NodeLabel.tsx` (hoje fixo em centralizado —
   passa a ler `content.align`/`content.format`), a coluna nova no grid de
   `App.tsx`/`styles.css`, e o que o modo código acrescenta —
   `presentation/canvas/jsHighlight.ts` (tokenizador), o ramo de desenho por token em
   `NodeLabel.tsx`, e o `<div>` de fundo colorido sincronizado ao `<textarea>` em
-  `LabelEditor.tsx` (ver `formas-e-texto.md` para o detalhe da técnica).
-- Performance: nenhuma — um VO de duas strings por nó de texto, sem custo de render
-  além do já existente.
+  `LabelEditor.tsx` (ver `formas-e-texto.md` para o detalhe da técnica). Estilo de
+  forma: `NodeView.tsx` (`style` vira classe modificadora em `.node-shape`),
+  `DiagramCanvas.tsx` (`Ctrl`+clique numa forma), `styles.css`
+  (`.node-shape--outlined`/`--dashed`).
+- Performance: nenhuma — um campo a mais por nó de texto ou de forma, sem custo de
+  render além do já existente.
 
 ## Restrições de implementação (guardrails)
 
-- `align` só existe dentro da variante `text` de `NodeContent` — não vira campo solto
-  em `DiagramNode`, mesma regra que já vale para `assetId` (só existe em `icon`) e
-  `shape` (só existe em `shape`).
-- Mudar alinhamento passa pelo caso de uso e pelo ponto único de commit — nenhum
-  `setState` de painel escreve o documento direto.
+- `align`/`format` só existem dentro da variante `text` de `NodeContent`, `style`
+  só na variante `shape` — nenhum vira campo solto em `DiagramNode`, mesma regra que
+  já vale para `assetId` (só existe em `icon`).
+- Mudar alinhamento, formato ou estilo de forma passa pelo caso de uso e pelo ponto
+  único de commit — nenhum `setState` de painel escreve o documento direto.
 - O painel não introduz um SEGUNDO lugar que sabe "o que está selecionado" — lê
   `session.selection`, que já existe.
 - Nada de `foreignObject` no cálculo de posição do texto — continua `<text>` +
@@ -277,8 +332,8 @@ Alternativos:
 ## Critérios de aceite
 
 - [x] Selecionar um nó de texto mostra o painel com os dois grupos de alinhamento.
-- [x] Selecionar uma forma ou ícone mostra o painel com "Nada para configurar
-      neste elemento."
+- [x] Selecionar um ícone mostra o painel com "Nada para configurar neste
+      elemento."
 - [x] Selecionar uma aresta mostra o painel com os dois grupos de estilo (direção,
       traço).
 - [x] Selecionar zero ou mais de um elemento esconde o painel — o canvas ocupa a
@@ -311,11 +366,21 @@ Alternativos:
 - [x] Mudar o formato pelo painel e pelo `Alt`+clique no nó (canvas) ficam
       consistentes: o botão certo aparece destacado depois de qualquer um dos dois
       caminhos — mesma garantia que já vale para estilo de aresta.
+- [x] Selecionar uma forma mostra o painel com o grupo "Estilo da forma" (três
+      botões), o valor atual destacado.
+- [x] Clicar "Contorno" remove o fundo, mantém a borda; clicar "Tracejada" tracejada
+      a borda; clicar "Preenchida" volta ao visual de sempre.
+- [x] Mudar o estilo de forma pelo painel e pelo `Ctrl`+clique no nó (canvas) ficam
+      consistentes: o botão certo aparece destacado depois de qualquer um dos dois
+      caminhos.
+- [x] Cada clique num botão de estilo de forma é uma entrada de undo própria.
+- [x] O estilo de forma sobrevive à recarga e ao export/import; `schemaVersion`
+      continua `1`.
 
 ## Questões em aberto
 
-- [ ] Quando um próximo controle chegar (cor, borda), o painel ganha abas/seções,
-      ou continua empilhando tudo verticalmente? Alinhamento e estilo de aresta
-      convivem empilhados porque nunca aparecem juntos (são exclusivos por tipo de
-      seleção) — um controle que valesse para vários tipos ao mesmo tempo
-      reabriria a pergunta.
+- [ ] Quando cor livre e fonte chegarem (design system), o painel ganha abas/seções,
+      ou continua empilhando tudo verticalmente? Alinhamento, estilo de forma e
+      estilo de aresta convivem empilhados porque nunca aparecem juntos (são
+      exclusivos por tipo de seleção) — um controle que valesse para vários tipos ao
+      mesmo tempo reabriria a pergunta.

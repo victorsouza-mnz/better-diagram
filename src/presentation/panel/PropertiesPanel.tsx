@@ -12,6 +12,7 @@ import codeIcon from "lucide-static/icons/code.svg?raw";
 import type { TextAlign } from "../../domain/diagram/TextAlign.js";
 import type { TextFormat } from "../../domain/diagram/TextFormat.js";
 import type { EdgeStyle } from "../../domain/diagram/EdgeStyle.js";
+import type { ShapeStyle } from "../../domain/diagram/ShapeStyle.js";
 import type { EditorSession } from "../session/useEditorSession.js";
 
 /** Traço sólido — não existe em `lucide-static` como ícone à parte, então é a
@@ -23,17 +24,28 @@ const LINE_SOLID = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="2
 const LINE_DASHED = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h16" stroke-dasharray="5 4.5"/></svg>`;
 
 /**
+ * Os três ícones de estilo de forma — mão desenhada, mesmo motivo dos traços acima:
+ * nenhum ícone pronto do lucide mostra "quadrado preenchido" vs. "só contorno" vs.
+ * "contorno tracejado" lado a lado de um jeito reconhecível. Um quadrado só,
+ * variando preenchimento/traço — a MESMA forma nos três, para o olho comparar só o
+ * que muda.
+ */
+const SQUARE_FILLED = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor"/></svg>`;
+const SQUARE_OUTLINED = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>`;
+const SQUARE_DASHED = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="4 3.2"/></svg>`;
+
+/**
  * Painel de propriedades, à direita do canvas.
  *
  * Aparece só com EXATAMENTE um item selecionado (nó ou aresta) — mesma regra das
  * alças de redimensionar: seleção múltipla não tem "a" propriedade de um conjunto
  * heterogêneo, e por isso não mostra o painel. Zero selecionados, idem.
  *
- * O que desenha dentro depende do que está selecionado: nó de texto mostra
- * alinhamento, aresta mostra direção e traço. Nó de forma ou ícone ainda não tem
- * controle nenhum — mostra que não há nada, não é vazio por engano. A condição só
- * cresce conforme mais controles chegam (cor, borda…), spec
- * `docs/specs/ui/painel-propriedades.md`.
+ * O que desenha dentro depende do que está selecionado: nó de texto mostra formato
+ * e alinhamento, nó de forma mostra preenchimento/contorno, aresta mostra direção e
+ * traço. Nó de ícone ainda não tem controle nenhum — mostra que não há nada, não é
+ * vazio por engano. A condição só cresce conforme mais controles chegam (cor,
+ * fonte…), spec `docs/specs/ui/painel-propriedades.md`.
  */
 export const PropertiesPanel = ({ session }: { session: EditorSession }) => {
   const { diagram, selection, actions } = session;
@@ -61,6 +73,11 @@ export const PropertiesPanel = ({ session }: { session: EditorSession }) => {
             onChange={(align) => actions.setTextAlign(node.id, align)}
           />
         </>
+      ) : node && node.content.kind === "shape" ? (
+        <ShapeStyleFields
+          style={node.content.style}
+          onChange={(style) => actions.setShapeStyle(node.id, style)}
+        />
       ) : edge ? (
         <EdgeStyleFields
           style={edge.style}
@@ -161,6 +178,43 @@ const FormatFields = ({
         <FieldButton
           key={option.value}
           active={format === option.value}
+          label={option.label}
+          svg={option.svg}
+          onClick={() => onChange(option.value)}
+        />
+      ))}
+    </div>
+  </section>
+);
+
+const SHAPE_STYLE_OPTIONS: readonly { value: ShapeStyle; label: string; svg: string }[] = [
+  { value: "filled", label: "Preenchida", svg: SQUARE_FILLED },
+  { value: "outlined", label: "Contorno, sem fundo", svg: SQUARE_OUTLINED },
+  { value: "dashed", label: "Contorno tracejado, sem fundo", svg: SQUARE_DASHED },
+];
+
+/**
+ * Um grupo só, de três botões — ao contrário do estilo de aresta (dois eixos
+ * independentes, dois grupos), aqui é um ciclo fechado de três aparências, a MESMA
+ * ordem que o Ctrl+clique no canvas percorre (`ShapeStyle.ts`). Os dois caminhos
+ * gravam a mesma entrada de undo ("Mudar estilo da forma") — é a mesma mudança, só
+ * por gatilhos diferentes.
+ */
+const ShapeStyleFields = ({
+  style,
+  onChange,
+}: {
+  style: ShapeStyle;
+  onChange: (style: ShapeStyle) => void;
+}) => (
+  <section className="properties-section">
+    <h2 className="properties-title">Estilo da forma</h2>
+
+    <div className="option-group" role="group" aria-label="Preenchimento e contorno">
+      {SHAPE_STYLE_OPTIONS.map((option) => (
+        <FieldButton
+          key={option.value}
+          active={style === option.value}
           label={option.label}
           svg={option.svg}
           onClick={() => onChange(option.value)}

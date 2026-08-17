@@ -10,6 +10,7 @@ import {
   DuplicateId,
   EdgeNotFound,
   NodeNotFound,
+  NotAShapeNode,
   NotATextNode,
   SelfLoopNotAllowed,
 } from "./errors.js";
@@ -213,6 +214,35 @@ describe("Diagram — formato de nó de texto", () => {
 
   it("recusa formatar um nó inexistente", () => {
     expect(() => empty().setTextFormat(NodeId("fantasma"), "code")).toThrow(NodeNotFound);
+  });
+});
+
+describe("Diagram — estilo de forma", () => {
+  it("nasce preenchida", () => {
+    const diagram = empty().addNode(shapeNode("n1"));
+    const content = diagram.node(NodeId("n1"))?.content;
+    expect(content?.kind === "shape" && content.style).toBe("filled");
+  });
+
+  it("setShapeStyle troca o estilo sem afetar a forma nem o rótulo", () => {
+    const diagram = empty()
+      .addNode(shapeNode("n1"))
+      .setNodeLabel(NodeId("n1"), "API Gateway")
+      .setShapeStyle(NodeId("n1"), "dashed");
+
+    const node = diagram.node(NodeId("n1"));
+    expect(node?.content.kind === "shape" && node.content.style).toBe("dashed");
+    expect(node?.content.kind === "shape" && node.content.shape).toBe("rect");
+    expect(node?.label).toBe("API Gateway");
+  });
+
+  it("recusa estilizar um nó que não é de forma", () => {
+    const diagram = empty().addNode(iconNode("n1", postgres), postgres);
+    expect(() => diagram.setShapeStyle(NodeId("n1"), "outlined")).toThrow(NotAShapeNode);
+  });
+
+  it("recusa estilizar um nó inexistente", () => {
+    expect(() => empty().setShapeStyle(NodeId("fantasma"), "outlined")).toThrow(NodeNotFound);
   });
 });
 

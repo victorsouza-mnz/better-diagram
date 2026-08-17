@@ -3,6 +3,7 @@ import { DiagramNode } from "../diagram/Node.js";
 import { Edge } from "../diagram/Edge.js";
 import type { Asset } from "../diagram/Asset.js";
 import type { NodeContent, ShapeKind } from "../diagram/NodeContent.js";
+import { DEFAULT_SHAPE_STYLE, type ShapeStyle } from "../diagram/ShapeStyle.js";
 import { DEFAULT_TEXT_ALIGN, type TextAlign } from "../diagram/TextAlign.js";
 import { DEFAULT_TEXT_FORMAT, type TextFormat } from "../diagram/TextFormat.js";
 import { rect } from "../shared/geometry.js";
@@ -95,6 +96,7 @@ const SHAPES: readonly string[] = ["rect", "ellipse", "diamond", "umlClass", "um
 const HORIZONTAL_ALIGNS: readonly string[] = ["left", "center", "right"];
 const VERTICAL_ALIGNS: readonly string[] = ["top", "middle", "bottom"];
 const TEXT_FORMATS: readonly string[] = ["plain", "code"];
+const SHAPE_STYLES: readonly string[] = ["filled", "outlined", "dashed"];
 
 /**
  * Ausente, ou de um documento salvo antes de o alinhamento existir: cai no padrão
@@ -120,6 +122,10 @@ const parseTextAlign = (raw: unknown): TextAlignDoc => {
 const parseTextFormat = (raw: unknown): string =>
   typeof raw === "string" && TEXT_FORMATS.includes(raw) ? raw : DEFAULT_TEXT_FORMAT;
 
+/** Mesma técnica de `parseTextFormat`: ausente ou inválido cai no padrão (preenchida). */
+const parseShapeStyle = (raw: unknown): string =>
+  typeof raw === "string" && SHAPE_STYLES.includes(raw) ? raw : DEFAULT_SHAPE_STYLE;
+
 const parseContent = (raw: unknown, path: string): ContentDoc => {
   if (!isObject(raw)) throw new DocumentInvalid(`${path} precisa ser um objeto`);
 
@@ -131,7 +137,7 @@ const parseContent = (raw: unknown, path: string): ContentDoc => {
       if (!SHAPES.includes(shape)) {
         throw new DocumentInvalid(`${path}.shape desconhecido: ${shape}`);
       }
-      return { kind: "shape", shape };
+      return { kind: "shape", shape, style: parseShapeStyle(raw["style"]) };
     }
     case "text":
       return {
@@ -285,7 +291,7 @@ const toContent = (content: ContentDoc): NodeContent =>
   content.kind === "icon"
     ? { kind: "icon", assetId: AssetId(content.assetId) }
     : content.kind === "shape"
-      ? { kind: "shape", shape: content.shape as ShapeKind }
+      ? { kind: "shape", shape: content.shape as ShapeKind, style: content.style as ShapeStyle }
       : {
           kind: "text",
           align: content.align as TextAlign,

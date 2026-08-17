@@ -386,6 +386,23 @@ export const DiagramCanvas = ({ session }: { session: EditorSession }) => {
               scale={viewport.scale}
               onPointerDown={(event) => {
                 event.stopPropagation();
+                // `Ctrl`+clique (`Cmd` no Mac) troca de gesto por completo — não
+                // seleciona nem arrasta, mesma regra do Ctrl+clique numa aresta
+                // (`EdgeLayer`) — e cicla o que a variante tem pra ciclar: estilo de
+                // preenchimento/contorno na forma, texto/código no texto. O mesmo
+                // atalho nas três coisas que têm "estilo" no app (forma, aresta,
+                // texto), em vez de cada uma ter o próprio gatilho. Em ícone não faz
+                // nada — cai no caminho de sempre.
+                if (event.ctrlKey || event.metaKey) {
+                  if (node.content.kind === "shape") {
+                    actions.cycleShapeStyle(node.id);
+                    return;
+                  }
+                  if (node.content.kind === "text") {
+                    actions.cycleTextFormat(node.id);
+                    return;
+                  }
+                }
                 // `Alt`+arrastar de QUALQUER lugar do nó conecta, em vez de mover —
                 // um atalho mais rápido do que mirar na setinha do lado direito.
                 // `Alt`+CLIQUE (sem arrastar) é o mesmo gesto sem deslocamento — e

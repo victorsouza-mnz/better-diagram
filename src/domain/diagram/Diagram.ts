@@ -4,6 +4,7 @@ import type { Asset } from "./Asset.js";
 import { DiagramNode } from "./Node.js";
 import { Edge } from "./Edge.js";
 import type { EdgeStyle } from "./EdgeStyle.js";
+import type { ShapeStyle } from "./ShapeStyle.js";
 import type { TextAlign } from "./TextAlign.js";
 import type { TextFormat } from "./TextFormat.js";
 import { referencedAsset } from "./NodeContent.js";
@@ -203,6 +204,16 @@ export class Diagram {
 
     const nodes = new Map(this.nodesById);
     nodes.set(id, node.withTextFormat(format));
+    return new Diagram(this.id, nodes, this.edgesById, this.assetsById);
+  }
+
+  /** Lança `NotAShapeNode` (via `DiagramNode.withShapeStyle`) se o nó não for forma. */
+  setShapeStyle(id: NodeId, style: ShapeStyle): Diagram {
+    const node = this.nodesById.get(id);
+    if (!node) throw new NodeNotFound(id);
+
+    const nodes = new Map(this.nodesById);
+    nodes.set(id, node.withShapeStyle(style));
     return new Diagram(this.id, nodes, this.edgesById, this.assetsById);
   }
 
